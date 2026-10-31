@@ -1,6 +1,6 @@
 import { buildContentSecurityPolicy, createNonce, securityHeaders } from "@/lib/security/headers";
 import { countInjectionAttempts, fenceUntrusted } from "@/lib/security/prompt-defense";
-import { clientKey, SlidingWindowRateLimiter } from "@/lib/security/rate-limit";
+import { clientKey, limitFromEnv, SlidingWindowRateLimiter } from "@/lib/security/rate-limit";
 
 describe("SlidingWindowRateLimiter", () => {
   it("allows requests up to the limit, then blocks with a retry hint", () => {
@@ -76,5 +76,18 @@ describe("security headers", () => {
         "Strict-Transport-Security",
       ]),
     );
+  });
+});
+
+describe("limitFromEnv", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("uses a positive integer from the environment or the default", () => {
+    vi.stubEnv("TEST_LIMIT", "40");
+    expect(limitFromEnv("TEST_LIMIT", 8)).toBe(40);
+    vi.stubEnv("TEST_LIMIT", "-1");
+    expect(limitFromEnv("TEST_LIMIT", 8)).toBe(8);
+    vi.stubEnv("TEST_LIMIT", "abc");
+    expect(limitFromEnv("TEST_LIMIT", 8)).toBe(8);
   });
 });

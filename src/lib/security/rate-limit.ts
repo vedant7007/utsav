@@ -59,10 +59,26 @@ export class SlidingWindowRateLimiter {
   }
 }
 
+/**
+ * Reads a positive integer limit from the environment, falling back to a safe default.
+ * @param name - environment variable name.
+ * @param fallback - default per-minute limit.
+ */
+export function limitFromEnv(name: string, fallback: number): number {
+  const value = Number(process.env[name]);
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
 /** Plan generation: 8 requests per minute per client keeps Gemini spend predictable. */
-export const planRateLimiter = new SlidingWindowRateLimiter(8, 60_000);
+export const planRateLimiter = new SlidingWindowRateLimiter(
+  limitFromEnv("PLAN_RATE_LIMIT", 8),
+  60_000,
+);
 /** Assistant chat: 15 messages per minute per client. */
-export const chatRateLimiter = new SlidingWindowRateLimiter(15, 60_000);
+export const chatRateLimiter = new SlidingWindowRateLimiter(
+  limitFromEnv("CHAT_RATE_LIMIT", 15),
+  60_000,
+);
 
 /**
  * Picks a client identifier. Platform-set headers are preferred because a client cannot

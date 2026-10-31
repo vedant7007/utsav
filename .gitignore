@@ -33,3 +33,7 @@ next-env.d.ts
 
 # local media produced for the demo video
 /demo-output/
+
+# playwright
+/test-results/
+/playwright-report/
