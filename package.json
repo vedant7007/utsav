@@ -9,7 +9,14 @@
     "type": "git",
     "url": "https://github.com/vedant7007/utsav.git"
   },
-  "keywords": ["event-planning", "genai", "gemini", "nextjs", "typescript", "accessibility"],
+  "keywords": [
+    "event-planning",
+    "genai",
+    "gemini",
+    "nextjs",
+    "typescript",
+    "accessibility"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -33,6 +40,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.7",
@@ -48,6 +56,7 @@
     "prettier": "3.9.9",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vite": "^8.3.5",
     "vitest": "5.0.2"
   },
   "engines": {

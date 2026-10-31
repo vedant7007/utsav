@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   CURRENCIES,
   EVENT_LABELS,
@@ -70,8 +70,14 @@ export function PlannerForm({ today, initial, busy, serverErrors = {}, onSubmit 
   const [form, setForm] = useState<FormState>(initial ? toFormState(initial) : EMPTY);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
   const summaryRef = useRef<HTMLDivElement>(null);
+  const [failedSubmits, setFailedSubmits] = useState(0);
   const samples = useMemo(() => sampleBriefs(today), [today]);
   const errors = { ...serverErrors, ...clientErrors };
+  // After a failed submit, move focus to the summary so screen reader users hear what to fix.
+  useEffect(() => {
+    if (failedSubmits > 0) summaryRef.current?.focus();
+  }, [failedSubmits]);
+
   const errorEntries = FIELD_ORDER.filter((key) => errors[key]).map((key) => [key, errors[key] as string]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -95,8 +101,7 @@ export function PlannerForm({ today, initial, busy, serverErrors = {}, onSubmit 
     if (dateError && !next.date) next.date = dateError;
     setClientErrors(next);
     if (!result.success || dateError) {
-      // Move focus to the summary so screen reader users hear what to fix.
-      requestAnimationFrame(() => summaryRef.current?.focus());
+      setFailedSubmits((count) => count + 1);
       return;
     }
     onSubmit(result.data);

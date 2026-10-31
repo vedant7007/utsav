@@ -43,9 +43,19 @@ export function PlannerApp({ today: serverToday }: { today: string }) {
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const controller = useRef<AbortController | null>(null);
+  const focusPlanTitle = useRef(false);
   const today = hydrated ? todayIso() : serverToday;
 
   useEffect(() => () => controller.current?.abort(), []);
+
+  // After a new plan renders, move focus to its title so keyboard and screen reader users land
+  // on the result. Restoring a saved plan on page load does not steal focus.
+  useEffect(() => {
+    if (focusPlanTitle.current && saved && !editing) {
+      focusPlanTitle.current = false;
+      document.getElementById("plan-title")?.focus();
+    }
+  }, [saved, editing]);
 
   async function handleSubmit(brief: EventBrief) {
     controller.current?.abort();
@@ -58,9 +68,8 @@ export function PlannerApp({ today: serverToday }: { today: string }) {
       const sameEvent = saved?.plan.brief.eventType === brief.eventType;
       setSaved(result);
       if (!sameEvent) setProgress(EMPTY_PROGRESS);
+      focusPlanTitle.current = true;
       setEditing(false);
-      // Move focus to the new plan so keyboard and screen reader users land on the result.
-      requestAnimationFrame(() => document.getElementById("plan-title")?.focus());
     } catch (error) {
       if ((error as Error).name === "AbortError") return;
       if (error instanceof ApiError) setServerErrors(error.fields);
