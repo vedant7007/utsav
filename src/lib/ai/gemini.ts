@@ -1,0 +1,94 @@
+import "server-only";
+import { GoogleGenAI } from "@google/genai";
+
+/** Lowest-cost Gemini model; planning ideas do not need a larger one. */
+export const DEFAULT_MODEL = "gemini-2.5-flash-lite";
+/** Used when the primary model is overloaded or rate limited. */
+export const FALLBACK_MODEL = "gemini-flash-lite-latest";
+/** Hard ceilings that cap spend per request. */
+export const MAX_OUTPUT_TOKENS = { ideas: 1_200, chat: 400 } as const;
+export const REQUEST_TIMEOUT_MS = 15_000;
+
+export interface GenerateOptions {
+  system: string;
+  prompt: string;
+  maxOutputTokens: number;
+  /** When set, the model must answer with JSON matching this schema. */
+  jsonSchema?: object;
+  temperature?: number;
+}
+
+/** Minimal model interface. Routes depend on this, so tests can inject a fake model. */
+export interface TextModel {
+  readonly id: string;
+  generate(options: GenerateOptions): Promise<string>;
+}
+
+/** Whether an error is worth retrying on the fallback model (overload, quota, timeouts). */
+export function isRetryable(error: unknown): boolean {
+  const status = (error as { status?: number } | null)?.status;
+  if (status === 429 || (typeof status === "number" && status >= 500)) return true;
+  const name = (error as { name?: string } | null)?.name;
+  return name === "TimeoutError" || name === "AbortError";
+}
+
+/** Google Gemini through the official @google/genai SDK. */
+export class GeminiModel implements TextModel {
+  readonly id: string;
+  private readonly client: GoogleGenAI;
+
+  constructor(
+    apiKey: string,
+    private readonly models: readonly string[] = [DEFAULT_MODEL, FALLBACK_MODEL],
+  ) {
+    this.client = new GoogleGenAI({ apiKey });
+    this.id = `gemini:${models[0] ?? DEFAULT_MODEL}`;
+  }
+
+  async generate({ system, prompt, maxOutputTokens, jsonSchema, temperature = 0.7 }: GenerateOptions): Promise<string> {
+    let lastError: unknown = new Error("No Gemini model configured");
+    for (const model of this.models) {
+      try {
+        const response = await this.client.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            systemInstruction: system,
+            maxOutputTokens,
+            temperature,
+            // Thinking tokens are billed; short planning outputs do not need them.
+            thinkingConfig: { thinkingBudget: 0 },
+            abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+            ...(jsonSchema ? { responseMimeType: "application/json", responseJsonSchema: jsonSchema } : {}),
+          },
+        });
+        const text = response.text?.trim();
+        if (!text) throw new Error("Gemini returned an empty response");
+        return text;
+      } catch (error) {
+        lastError = error;
+        if (!isRetryable(error)) break;
+      }
+    }
+    throw lastError;
+  }
+}
+
+let cached: TextModel | null | undefined;
+
+/**
+ * Returns the configured model, or null when no API key is set (offline mode).
+ * The instance is created once per server process.
+ */
+export function getModel(): TextModel | null {
+  if (cached !== undefined) return cached;
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  const primary = process.env.GEMINI_MODEL?.trim() || DEFAULT_MODEL;
+  cached = apiKey ? new GeminiModel(apiKey, [...new Set([primary, FALLBACK_MODEL])]) : null;
+  return cached;
+}
+
+/** Clears the memoised model; used by tests that change environment variables. */
+export function resetModelForTests(): void {
+  cached = undefined;
+}
