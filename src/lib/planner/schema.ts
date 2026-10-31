@@ -5,7 +5,6 @@ import { CURRENCIES, EVENT_TYPES, LIMITS, PRIORITY_OPTIONS } from "./constants";
 export function cleanText(value: string): string {
   return (
     value
-      // eslint-disable-next-line no-control-regex
       .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
       .replace(/\s+/g, " ")
       .trim()
@@ -17,6 +16,7 @@ const text = (max: number) => z.string().transform(cleanText).pipe(z.string().ma
 /** ISO calendar date (YYYY-MM-DD) that is also a real date, e.g. not 2026-02-30. */
 export const isoDateSchema = z
   .string()
+  .min(1, "Choose the event date")
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use the YYYY-MM-DD format")
   .refine((value) => {
     const date = new Date(`${value}T00:00:00Z`);

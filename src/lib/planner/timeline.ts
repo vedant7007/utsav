@@ -170,30 +170,32 @@ export function buildTimeline(
   const available = Math.max(daysUntil, 0);
   const isOverdue = (daysBefore: number) => daysBefore > available && daysBefore > 0;
   const overdue = tasks.filter((task) => isOverdue(task.daysBefore));
-  // Overdue tasks are spread from today down to the first task that is still on time, so the
-  // schedule stays in its original order.
-  const nextOnTime = tasks.find((task) => !isOverdue(task.daysBefore))?.daysBefore ?? 0;
-  const floor = Math.max(nextOnTime, 0);
-  const step = overdue.length > 0 ? (available - floor) / overdue.length : 0;
+  // Overdue tasks are spread across a catch-up window at the start of the runway (about three
+  // days per task, never past the event), keeping their original order.
+  const window = Math.min(available, Math.max(overdue.length * 3, 1));
+  const step = overdue.length > 1 ? window / (overdue.length - 1) : 0;
   let overdueIndex = 0;
 
-  const milestones = tasks.map((task): Milestone => {
-    const rushed = isOverdue(task.daysBefore);
-    let lead = task.daysBefore;
-    if (rushed) {
-      lead = Math.max(Math.round(available - step * overdueIndex), floor);
-      overdueIndex += 1;
-    }
-    return {
-      id: task.id,
-      title: task.title,
-      daysBefore: task.daysBefore,
-      date: addDays(eventDate, -lead),
-      phase: phaseFor(lead),
-      rushed,
-      source: task.source,
-    };
-  });
+  const milestones = tasks
+    .map((task): Milestone => {
+      const rushed = isOverdue(task.daysBefore);
+      let lead = task.daysBefore;
+      if (rushed) {
+        lead = Math.max(Math.round(available - step * overdueIndex), 0);
+        overdueIndex += 1;
+      }
+      return {
+        id: task.id,
+        title: task.title,
+        daysBefore: task.daysBefore,
+        date: addDays(eventDate, -lead),
+        phase: phaseFor(lead),
+        rushed,
+        source: task.source,
+      };
+    })
+    // Chronological order; the sort is stable, so same-day tasks keep their template order.
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   return { milestones, daysUntil, compressed: overdue.length > 0 };
 }
