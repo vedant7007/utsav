@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Hero } from "@/components/landing/hero";
 import { PlanWorkspace, type PlanProgress } from "@/components/plan/plan-workspace";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import { type AiStatus, ApiError, requestPlan } from "@/lib/client/api";
@@ -25,19 +26,30 @@ function validateSaved(value: unknown): SavedPlan | null {
 
 function validateProgress(value: unknown): PlanProgress | null {
   const candidate = value as PlanProgress | null;
-  if (!candidate || !Array.isArray(candidate.done) || typeof candidate.actuals !== "object") return null;
+  if (!candidate || !Array.isArray(candidate.done) || typeof candidate.actuals !== "object")
+    return null;
   return {
     done: candidate.done.filter((id): id is string => typeof id === "string"),
     actuals: Object.fromEntries(
-      Object.entries(candidate.actuals ?? {}).filter(([, amount]) => typeof amount === "number" && amount > 0),
+      Object.entries(candidate.actuals ?? {}).filter(
+        ([, amount]) => typeof amount === "number" && amount > 0,
+      ),
     ),
   };
 }
 
 /** Top-level planner: the brief form, then the plan workspace. State survives page reloads. */
 export function PlannerApp({ today: serverToday }: { today: string }) {
-  const [saved, setSaved, hydrated] = usePersistentState<SavedPlan | null>("utsav.plan.v1", null, validateSaved);
-  const [progress, setProgress] = usePersistentState<PlanProgress>("utsav.progress.v1", EMPTY_PROGRESS, validateProgress);
+  const [saved, setSaved, hydrated] = usePersistentState<SavedPlan | null>(
+    "utsav.plan.v1",
+    null,
+    validateSaved,
+  );
+  const [progress, setProgress] = usePersistentState<PlanProgress>(
+    "utsav.progress.v1",
+    EMPTY_PROGRESS,
+    validateProgress,
+  );
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
@@ -54,6 +66,7 @@ export function PlannerApp({ today: serverToday }: { today: string }) {
     if (focusPlanTitle.current && saved && !editing) {
       focusPlanTitle.current = false;
       document.getElementById("plan-title")?.focus();
+      window.scrollTo({ top: 0 });
     }
   }, [saved, editing]);
 
@@ -99,25 +112,31 @@ export function PlannerApp({ today: serverToday }: { today: string }) {
   }
 
   return (
-    <div className="space-y-4">
-      {message && (
-        <p role="alert" className="rounded-xl border-2 border-alert bg-alert-soft p-4 font-semibold text-alert">
-          {message}
-        </p>
-      )}
-      <PlannerForm
-        key={saved ? "edit" : "new"}
-        today={today}
-        initial={editing ? saved?.plan.brief : null}
-        busy={busy}
-        serverErrors={serverErrors}
-        onSubmit={handleSubmit}
-      />
-      {editing && (
-        <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>
-          Back to my plan
-        </button>
-      )}
-    </div>
+    <>
+      <Hero />
+      <div id="planner" className="mx-auto max-w-5xl scroll-mt-4 space-y-4 px-5 py-12">
+        {message && (
+          <p
+            role="alert"
+            className="rounded-2xl border-2 border-alert bg-alert-soft p-4 font-bold text-alert"
+          >
+            {message}
+          </p>
+        )}
+        <PlannerForm
+          key={saved ? "edit" : "new"}
+          today={today}
+          initial={editing ? saved?.plan.brief : null}
+          busy={busy}
+          serverErrors={serverErrors}
+          onSubmit={handleSubmit}
+        />
+        {editing && (
+          <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>
+            Back to my plan
+          </button>
+        )}
+      </div>
+    </>
   );
 }

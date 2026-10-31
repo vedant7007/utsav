@@ -24,7 +24,11 @@ const okModel: TextModel = {
 };
 
 function planHandler(model: TextModel | null = null, limit = 100) {
-  return createPlanHandler({ model: () => model, today: () => TODAY, limiter: new SlidingWindowRateLimiter(limit, 60_000) });
+  return createPlanHandler({
+    model: () => model,
+    today: () => TODAY,
+    limiter: new SlidingWindowRateLimiter(limit, 60_000),
+  });
 }
 
 beforeEach(() => {
@@ -61,14 +65,25 @@ describe("POST /api/plan", () => {
 
   it("rejects bad JSON, wrong content type and oversized bodies", async () => {
     expect((await planHandler()(post("{oops"))).status).toBe(400);
-    expect((await planHandler()(post(makeBrief(), { "content-type": "text/plain" }))).status).toBe(415);
-    expect((await planHandler()(post(makeBrief(), { "content-length": String(MAX_BODY_BYTES + 1) }))).status).toBe(413);
-    expect((await planHandler()(post(JSON.stringify({ pad: "x".repeat(MAX_BODY_BYTES) })))).status).toBe(413);
+    expect((await planHandler()(post(makeBrief(), { "content-type": "text/plain" }))).status).toBe(
+      415,
+    );
+    expect(
+      (await planHandler()(post(makeBrief(), { "content-length": String(MAX_BODY_BYTES + 1) })))
+        .status,
+    ).toBe(413);
+    expect(
+      (await planHandler()(post(JSON.stringify({ pad: "x".repeat(MAX_BODY_BYTES) })))).status,
+    ).toBe(413);
   });
 
   it("blocks cross-site browser requests but allows same-origin ones", async () => {
-    expect((await planHandler()(post(makeBrief(), { origin: "https://evil.example" }))).status).toBe(403);
-    expect((await planHandler()(post(makeBrief(), { origin: "https://utsav.example" }))).status).toBe(200);
+    expect(
+      (await planHandler()(post(makeBrief(), { origin: "https://evil.example" }))).status,
+    ).toBe(403);
+    expect(
+      (await planHandler()(post(makeBrief(), { origin: "https://utsav.example" }))).status,
+    ).toBe(200);
     expect((await planHandler()(post(makeBrief(), { origin: "not a url" }))).status).toBe(403);
   });
 
@@ -83,11 +98,16 @@ describe("POST /api/plan", () => {
 
 describe("POST /api/assistant", () => {
   const handler = (model: TextModel | null) =>
-    createAssistantHandler({ model: () => model, limiter: new SlidingWindowRateLimiter(100, 60_000) });
+    createAssistantHandler({
+      model: () => model,
+      limiter: new SlidingWindowRateLimiter(100, 60_000),
+    });
 
   it("answers with the model", async () => {
     const model: TextModel = { id: "fake", generate: async () => "Book the venue first." };
-    const response = await handler(model)(post({ brief: makeBrief(), message: "What first?", history: [] }));
+    const response = await handler(model)(
+      post({ brief: makeBrief(), message: "What first?", history: [] }),
+    );
     expect(await response.json()).toEqual({ reply: "Book the venue first.", source: "gemini" });
   });
 
@@ -97,6 +117,9 @@ describe("POST /api/assistant", () => {
     const empty = await handler(null)(post({ brief: makeBrief(), message: "   " }));
     expect(empty.status).toBe(422);
     const longHistory = Array.from({ length: 9 }, () => ({ role: "user", content: "hi" }));
-    expect((await handler(null)(post({ brief: makeBrief(), message: "hi", history: longHistory }))).status).toBe(422);
+    expect(
+      (await handler(null)(post({ brief: makeBrief(), message: "hi", history: longHistory })))
+        .status,
+    ).toBe(422);
   });
 });

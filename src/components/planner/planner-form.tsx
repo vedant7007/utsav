@@ -10,9 +10,15 @@ import {
   PRIORITY_OPTIONS,
   type Priority,
 } from "@/lib/planner/constants";
+import type { EventType } from "@/lib/planner/constants";
 import { validateEventDate } from "@/lib/planner/plan";
 import { sampleBriefs } from "@/lib/planner/samples";
-import { type EventBrief, type EventBriefInput, eventBriefSchema, fieldErrors } from "@/lib/planner/schema";
+import {
+  type EventBrief,
+  type EventBriefInput,
+  eventBriefSchema,
+  fieldErrors,
+} from "@/lib/planner/schema";
 
 interface FormState {
   eventType: string;
@@ -40,7 +46,25 @@ const EMPTY: FormState = {
   notes: "",
 };
 
-const FIELD_ORDER = ["eventType", "title", "date", "guests", "budget", "currency", "city", "theme", "priorities", "notes"];
+const EVENT_ICONS: Record<EventType, string> = {
+  wedding: "💍",
+  birthday: "🎂",
+  anniversary: "💞",
+  community: "🪔",
+};
+
+const FIELD_ORDER = [
+  "eventType",
+  "title",
+  "date",
+  "guests",
+  "budget",
+  "currency",
+  "city",
+  "theme",
+  "priorities",
+  "notes",
+];
 
 function toFormState(brief: EventBriefInput): FormState {
   return {
@@ -66,7 +90,13 @@ interface PlannerFormProps {
 }
 
 /** Collects and validates the event brief. Errors are summarised at the top and linked to fields. */
-export function PlannerForm({ today, initial, busy, serverErrors = {}, onSubmit }: PlannerFormProps) {
+export function PlannerForm({
+  today,
+  initial,
+  busy,
+  serverErrors = {},
+  onSubmit,
+}: PlannerFormProps) {
   const [form, setForm] = useState<FormState>(initial ? toFormState(initial) : EMPTY);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -78,7 +108,10 @@ export function PlannerForm({ today, initial, busy, serverErrors = {}, onSubmit 
     if (failedSubmits > 0) summaryRef.current?.focus();
   }, [failedSubmits]);
 
-  const errorEntries = FIELD_ORDER.filter((key) => errors[key]).map((key) => [key, errors[key] as string]);
+  const errorEntries = FIELD_ORDER.filter((key) => errors[key]).map((key) => [
+    key,
+    errors[key] as string,
+  ]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((previous) => ({ ...previous, [key]: value }));
@@ -108,7 +141,8 @@ export function PlannerForm({ today, initial, busy, serverErrors = {}, onSubmit 
   }
 
   const describedBy = (key: string, hint?: boolean) =>
-    [hint ? `${key}-hint` : "", errors[key] ? `${key}-error` : ""].filter(Boolean).join(" ") || undefined;
+    [hint ? `${key}-hint` : "", errors[key] ? `${key}-error` : ""].filter(Boolean).join(" ") ||
+    undefined;
 
   const fieldError = (key: string) =>
     errors[key] ? (
@@ -118,19 +152,30 @@ export function PlannerForm({ today, initial, busy, serverErrors = {}, onSubmit 
     ) : null;
 
   return (
-    <form onSubmit={handleSubmit} noValidate aria-labelledby="brief-heading" className="card p-5 sm:p-8">
-      <h2 id="brief-heading" className="font-[family-name:var(--font-display)] text-2xl font-bold text-maroon">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      aria-labelledby="brief-heading"
+      className="sticker p-5 sm:p-9"
+    >
+      <h2 id="brief-heading" className="display text-4xl sm:text-5xl">
         Tell Utsav about your celebration
       </h2>
-      <p className="mt-1 text-muted">Fields marked with an asterisk are required.</p>
+      <p className="mt-2 text-muted">
+        Fields marked with an asterisk are required. Everything else makes the plan more personal.
+      </p>
 
-      <div className="no-print mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Try a sample event">
-        <span className="text-sm font-semibold text-muted">Try a sample:</span>
+      <div
+        className="no-print mt-5 flex flex-wrap items-center gap-2 rounded-2xl bg-sun p-3"
+        role="group"
+        aria-label="Try a sample event"
+      >
+        <span className="px-1 font-bold">No details yet? Try a sample:</span>
         {samples.map((sample) => (
           <button
             key={sample.id}
             type="button"
-            className="rounded-full border border-line bg-cream px-3 py-1.5 text-sm font-semibold text-maroon hover:bg-marigold-soft"
+            className="chip hover:bg-blush"
             onClick={() => {
               setForm(toFormState(sample.brief));
               setClientErrors({});
@@ -146,11 +191,12 @@ export function PlannerForm({ today, initial, busy, serverErrors = {}, onSubmit 
           ref={summaryRef}
           tabIndex={-1}
           role="alert"
-          className="mt-5 rounded-xl border-2 border-alert bg-alert-soft p-4"
+          className="mt-5 rounded-2xl border-2 border-alert bg-alert-soft p-4"
           aria-labelledby="error-summary-title"
         >
           <h3 id="error-summary-title" className="font-bold text-alert">
-            Please fix {errorEntries.length === 1 ? "this detail" : `these ${errorEntries.length} details`}
+            Please fix{" "}
+            {errorEntries.length === 1 ? "this detail" : `these ${errorEntries.length} details`}
           </h3>
           <ul className="mt-2 list-disc pl-5">
             {errorEntries.map(([key, message]) => (
@@ -166,12 +212,14 @@ export function PlannerForm({ today, initial, busy, serverErrors = {}, onSubmit 
 
       <fieldset className="mt-6">
         <legend className="field-label">Type of event *</legend>
-        <div id="field-eventType" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div id="field-eventType" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {EVENT_TYPES.map((type) => (
             <label
               key={type}
-              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border-2 px-3 py-2 font-semibold ${
-                form.eventType === type ? "border-maroon bg-marigold-soft text-maroon" : "border-line bg-paper"
+              className={`flex min-h-14 cursor-pointer items-center gap-2 rounded-2xl border-2 border-ink px-3 py-2 text-lg font-bold transition-transform ${
+                form.eventType === type
+                  ? "-translate-y-0.5 bg-marigold shadow-[4px_4px_0_#1a1033]"
+                  : "bg-paper hover:bg-sun"
               }`}
             >
               <input
@@ -180,8 +228,9 @@ export function PlannerForm({ today, initial, busy, serverErrors = {}, onSubmit 
                 value={type}
                 checked={form.eventType === type}
                 onChange={() => update("eventType", type)}
-                className="h-4 w-4 accent-[#7a1f2b]"
+                className="h-4 w-4 accent-[#c4005f]"
               />
+              <span aria-hidden="true">{EVENT_ICONS[type]}</span>
               {EVENT_LABELS[type]}
             </label>
           ))}
@@ -334,16 +383,14 @@ export function PlannerForm({ today, initial, busy, serverErrors = {}, onSubmit 
             return (
               <label
                 key={priority}
-                className={`flex min-h-11 items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-semibold ${
-                  checked ? "border-leaf bg-leaf-soft text-leaf" : "border-line bg-paper"
-                } ${disabled ? "opacity-60" : "cursor-pointer"}`}
+                className={`chip ${checked ? "bg-mint" : ""} ${disabled ? "opacity-60" : "cursor-pointer hover:bg-sun"}`}
               >
                 <input
                   type="checkbox"
                   checked={checked}
                   disabled={disabled}
                   onChange={() => togglePriority(priority)}
-                  className="h-4 w-4 accent-[#1d6b4f]"
+                  className="h-4 w-4 accent-[#006567]"
                 />
                 {PRIORITY_LABELS[priority]}
               </label>
@@ -373,7 +420,12 @@ export function PlannerForm({ today, initial, busy, serverErrors = {}, onSubmit 
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <button type="submit" className="btn btn-primary" disabled={busy} aria-describedby="submit-status">
+        <button
+          type="submit"
+          className="btn btn-primary text-lg"
+          disabled={busy}
+          aria-describedby="submit-status"
+        >
           {busy ? "Planning your celebration..." : "Create my plan"}
         </button>
         <p id="submit-status" className="text-sm text-muted" aria-live="polite">

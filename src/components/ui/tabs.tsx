@@ -42,11 +42,7 @@ export function Tabs({ label, items, active, onChange }: TabsProps) {
 
   return (
     <div>
-      <div
-        role="tablist"
-        aria-label={label}
-        className="no-print flex gap-1 overflow-x-auto border-b border-line pb-px"
-      >
+      <div role="tablist" aria-label={label} className="no-print flex gap-2 overflow-x-auto pb-3">
         {items.map((item, index) => {
           const selected = item.id === active;
           return (
@@ -63,10 +59,10 @@ export function Tabs({ label, items, active, onChange }: TabsProps) {
               tabIndex={selected ? 0 : -1}
               onClick={() => onChange(item.id)}
               onKeyDown={(event) => onKeyDown(event, index)}
-              className={`min-h-11 whitespace-nowrap rounded-t-lg px-4 py-2 font-semibold ${
+              className={`min-h-12 whitespace-nowrap rounded-full border-2 border-ink px-5 py-2 text-lg font-bold transition-transform ${
                 selected
-                  ? "border-b-4 border-maroon bg-paper text-maroon"
-                  : "text-muted hover:bg-marigold-soft"
+                  ? "-translate-y-0.5 bg-rani text-white shadow-[4px_4px_0_#1a1033]"
+                  : "bg-paper hover:bg-sun"
               }`}
             >
               {item.label}
@@ -82,7 +78,7 @@ export function Tabs({ label, items, active, onChange }: TabsProps) {
           aria-labelledby={`${baseId}-tab-${item.id}`}
           hidden={item.id !== active}
           tabIndex={0}
-          className="pt-6 focus:outline-none"
+          className="pt-4 focus:outline-none"
         >
           {item.content}
         </div>

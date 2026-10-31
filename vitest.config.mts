@@ -12,7 +12,12 @@ export default defineConfig({
     setupFiles: ["tests/setup.ts"],
     coverage: {
       provider: "v8",
-      include: ["src/lib/**/*.ts", "src/components/**/*.tsx", "src/hooks/**/*.ts", "src/app/api/**/*.ts"],
+      include: [
+        "src/lib/**/*.ts",
+        "src/components/**/*.tsx",
+        "src/hooks/**/*.ts",
+        "src/app/api/**/*.ts",
+      ],
       exclude: ["src/**/*.d.ts"],
       reporter: ["text-summary", "text", "json-summary"],
       thresholds: { lines: 80, functions: 80, statements: 80, branches: 70 },

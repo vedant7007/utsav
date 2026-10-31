@@ -9,7 +9,10 @@ import { makeBrief } from "../fixtures";
 import { axeViolations } from "./a11y";
 
 const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
-const plan = buildPlan(makeBrief({ date: addDays(today, 40), eventType: "birthday", guests: 20, budget: 30_000 }), today);
+const plan = buildPlan(
+  makeBrief({ date: addDays(today, 40), eventType: "birthday", guests: 20, budget: 30_000 }),
+  today,
+);
 
 function Harness({ onReset = vi.fn(), onEdit = vi.fn() }) {
   const [progress, setProgress] = useState<PlanProgress>({ done: [], actuals: {} });
@@ -28,9 +31,9 @@ function Harness({ onReset = vi.fn(), onEdit = vi.fn() }) {
 describe("PlanWorkspace", () => {
   it("renders the overview accessibly with an offline notice", async () => {
     const { container } = render(<Harness />);
-    expect(screen.getByRole("heading", { level: 2, name: "Test Wedding" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Test Wedding" })).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("offline mode");
-    expect(screen.getByText("40 days to go")).toBeInTheDocument();
+    expect(screen.getAllByText("40 days to go").length).toBeGreaterThan(0);
     expect(await axeViolations(container)).toEqual([]);
   });
 
@@ -70,9 +73,13 @@ describe("PlanWorkspace", () => {
     const panel = screen.getByRole("tabpanel", { name: "Vendors" });
     const boxes = within(panel).getAllByRole("checkbox");
     await user.click(boxes[0] as HTMLElement);
-    expect(within(panel).getByText(new RegExp(`1 of ${boxes.length} tasks done`))).toBeInTheDocument();
+    expect(
+      within(panel).getByText(new RegExp(`1 of ${boxes.length} tasks done`)),
+    ).toBeInTheDocument();
     await user.click(boxes[0] as HTMLElement);
-    expect(within(panel).getByText(new RegExp(`0 of ${boxes.length} tasks done`))).toBeInTheDocument();
+    expect(
+      within(panel).getByText(new RegExp(`0 of ${boxes.length} tasks done`)),
+    ).toBeInTheDocument();
   });
 
   it("exports the timeline as an .ics file", async () => {
@@ -80,7 +87,9 @@ describe("PlanWorkspace", () => {
     const createObjectURL = vi.fn(() => "blob:utsav");
     const revokeObjectURL = vi.fn();
     vi.stubGlobal("URL", Object.assign(URL, { createObjectURL, revokeObjectURL }));
-    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
     render(<Harness />);
     await user.click(screen.getByRole("tab", { name: "Timeline" }));
     await user.click(screen.getByRole("button", { name: /Add to calendar/ }));

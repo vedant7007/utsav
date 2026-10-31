@@ -54,10 +54,10 @@ export function AssistantChat({ brief }: AssistantChatProps) {
   }
 
   return (
-    <section aria-labelledby="assistant-heading" className="card p-5">
-      <h3 id="assistant-heading" className="font-[family-name:var(--font-display)] text-xl font-bold text-maroon">
+    <section aria-labelledby="assistant-heading" className="sticker p-6">
+      <h2 id="assistant-heading" className="display text-3xl">
         Ask Utsav
-      </h3>
+      </h2>
       <p className="text-muted">Questions about this plan: budget trade-offs, priorities, ideas.</p>
 
       <ol
@@ -71,15 +71,21 @@ export function AssistantChat({ brief }: AssistantChatProps) {
           <li
             key={index}
             className={`max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-2.5 ${
-              turn.role === "user" ? "ml-auto bg-maroon text-white" : "bg-cream text-ink"
+              turn.role === "user"
+                ? "ml-auto rounded-br-sm bg-rani text-white"
+                : "rounded-bl-sm border-2 border-ink bg-sun text-ink"
             }`}
           >
-            <span className="sr-only">{turn.role === "user" ? "You said: " : "Utsav replied: "}</span>
+            <span className="sr-only">
+              {turn.role === "user" ? "You said: " : "Utsav replied: "}
+            </span>
             {turn.content}
           </li>
         ))}
         {busy && (
-          <li className="max-w-[85%] rounded-2xl bg-cream px-4 py-2.5 text-muted">Utsav is thinking...</li>
+          <li className="max-w-[85%] rounded-2xl border-2 border-ink bg-sun px-4 py-2.5 font-semibold">
+            Utsav is thinking...
+          </li>
         )}
       </ol>
 
@@ -90,7 +96,7 @@ export function AssistantChat({ brief }: AssistantChatProps) {
               key={suggestion}
               type="button"
               onClick={() => void send(suggestion)}
-              className="rounded-full border border-line px-3 py-1.5 text-sm font-semibold text-maroon hover:bg-marigold-soft"
+              className="chip hover:bg-sun"
             >
               {suggestion}
             </button>

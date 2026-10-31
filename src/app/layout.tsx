@@ -1,18 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
+import "@fontsource-variable/bricolage-grotesque/standard.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Utsav: AI Celebration and Event Planner",
   description:
-    "Plan weddings, birthdays, anniversaries and community events with an AI planner: budget splits, dated timelines, vendor checklists and personalised ideas.",
+    "Plan weddings, birthdays, anniversaries and community events with an AI planner: budget splits, dated timelines, vendor checklists, run sheets, palettes and invitations.",
   applicationName: "Utsav",
   icons: { icon: "/icon.svg" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#7a1f2b",
+  themeColor: "#1f1147",
   width: "device-width",
   initialScale: 1,
 };
@@ -29,26 +30,39 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <a href="#main" className="skip-link">
           Skip to main content
         </a>
-        <header className="border-b border-line bg-paper">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-            <Link href="/" className="flex items-center gap-2 text-maroon" aria-label="Utsav home">
-              <svg aria-hidden="true" width="32" height="32" viewBox="0 0 32 32">
-                <circle cx="16" cy="16" r="15" fill="#f2a900" />
-                <circle cx="16" cy="16" r="8" fill="#7a1f2b" />
-                <circle cx="16" cy="16" r="3" fill="#fff8ee" />
+        <header className="night-band on-night">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
+            <Link href="/" className="flex items-center gap-2.5 text-white" aria-label="Utsav home">
+              <svg aria-hidden="true" width="38" height="38" viewBox="0 0 32 32">
+                {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, index) => (
+                  <ellipse
+                    key={angle}
+                    cx="16"
+                    cy="7.5"
+                    rx="3.4"
+                    ry="6"
+                    transform={`rotate(${angle} 16 16)`}
+                    fill={index % 2 === 0 ? "#c4005f" : "#ffb400"}
+                    stroke="#1a1033"
+                    strokeWidth="0.8"
+                  />
+                ))}
+                <circle cx="16" cy="16" r="4.2" fill="#ffffff" stroke="#1a1033" strokeWidth="1" />
               </svg>
-              <span className="font-[family-name:var(--font-display)] text-2xl font-bold">Utsav</span>
+              <span className="display text-3xl">Utsav</span>
             </Link>
-            <p className="hidden text-sm text-muted sm:block">AI planner for every celebration</p>
+            <p className="hidden text-sm font-semibold text-white/85 sm:block">
+              Weddings, birthdays, anniversaries and melas, planned with Gemini
+            </p>
           </div>
         </header>
-        <main id="main" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-8 focus:outline-none">
+        <main id="main" tabIndex={-1} className="focus:outline-none">
           {children}
         </main>
-        <footer className="border-t border-line py-6 text-center text-sm text-muted">
-          <p>
-            Built for PromptWars Virtual with Google Gemini. Plans are suggestions; confirm prices and
-            availability with vendors.
+        <footer className="border-t-2 border-ink bg-sun py-6 text-center text-sm font-semibold text-ink">
+          <p className="mx-auto max-w-3xl px-5">
+            Built for PromptWars Virtual with Google Gemini. Plans are suggestions, so confirm
+            prices and availability with your vendors.
           </p>
         </footer>
       </body>
