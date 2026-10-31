@@ -6,7 +6,7 @@ export const DEFAULT_MODEL = "gemini-3.5-flash-lite";
 /** Used when the primary model is overloaded, rate limited or retired. */
 export const FALLBACK_MODEL = "gemini-flash-lite-latest";
 /** Hard ceilings that cap spend per request. */
-export const MAX_OUTPUT_TOKENS = { ideas: 1_200, chat: 400 } as const;
+export const MAX_OUTPUT_TOKENS = { ideas: 1_800, chat: 400 } as const;
 export const REQUEST_TIMEOUT_MS = 15_000;
 
 export interface GenerateOptions {
@@ -30,7 +30,8 @@ export interface TextModel {
  */
 export function isRetryable(error: unknown): boolean {
   const status = (error as { status?: number } | null)?.status;
-  if (status === 404 || status === 429 || (typeof status === "number" && status >= 500)) return true;
+  if (status === 404 || status === 429 || (typeof status === "number" && status >= 500))
+    return true;
   const name = (error as { name?: string } | null)?.name;
   return name === "TimeoutError" || name === "AbortError";
 }
@@ -40,7 +41,9 @@ export function isRetryable(error: unknown): boolean {
  * token budget; Gemini 3 and later take a level.
  */
 export function minimalThinking(model: string): ThinkingConfig {
-  return model.startsWith("gemini-2.5") ? { thinkingBudget: 0 } : { thinkingLevel: ThinkingLevel.MINIMAL };
+  return model.startsWith("gemini-2.5")
+    ? { thinkingBudget: 0 }
+    : { thinkingLevel: ThinkingLevel.MINIMAL };
 }
 
 /** Google Gemini through the official @google/genai SDK. */
@@ -56,7 +59,13 @@ export class GeminiModel implements TextModel {
     this.id = `gemini:${models[0] ?? DEFAULT_MODEL}`;
   }
 
-  async generate({ system, prompt, maxOutputTokens, jsonSchema, temperature = 0.7 }: GenerateOptions): Promise<string> {
+  async generate({
+    system,
+    prompt,
+    maxOutputTokens,
+    jsonSchema,
+    temperature = 0.7,
+  }: GenerateOptions): Promise<string> {
     let lastError: unknown = new Error("No Gemini model configured");
     for (const model of this.models) {
       try {
@@ -69,7 +78,9 @@ export class GeminiModel implements TextModel {
             temperature,
             thinkingConfig: minimalThinking(model),
             abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-            ...(jsonSchema ? { responseMimeType: "application/json", responseJsonSchema: jsonSchema } : {}),
+            ...(jsonSchema
+              ? { responseMimeType: "application/json", responseJsonSchema: jsonSchema }
+              : {}),
           },
         });
         const text = response.text?.trim();

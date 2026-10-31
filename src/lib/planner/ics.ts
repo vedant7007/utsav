@@ -47,8 +47,15 @@ const compact = (isoDate: string) => isoDate.replace(/-/g, "");
  * @param milestones - dated milestones.
  * @param stamp - creation timestamp (injected for deterministic tests).
  */
-export function buildIcs(eventTitle: string, milestones: Milestone[], stamp: Date = new Date()): string {
-  const dtStamp = stamp.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+export function buildIcs(
+  eventTitle: string,
+  milestones: Milestone[],
+  stamp: Date = new Date(),
+): string {
+  const dtStamp = stamp
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}/, "");
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",

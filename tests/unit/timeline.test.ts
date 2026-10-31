@@ -1,5 +1,11 @@
 import { EVENT_TYPES } from "@/lib/planner/constants";
-import { addDays, buildTimeline, daysBetween, parseIsoDate, toIsoDate } from "@/lib/planner/timeline";
+import {
+  addDays,
+  buildTimeline,
+  daysBetween,
+  parseIsoDate,
+  toIsoDate,
+} from "@/lib/planner/timeline";
 import { TODAY } from "../fixtures";
 
 describe("date helpers", () => {
@@ -35,7 +41,9 @@ describe("buildTimeline", () => {
     const dates = plan.milestones.map((milestone) => milestone.date);
     expect([...dates].sort()).toEqual(dates);
     expect(plan.milestones.at(-1)?.id).toBe("thank-you");
-    expect(plan.milestones.find((milestone) => milestone.id === "day-of")?.date).toBe(addDays(TODAY, 15));
+    expect(plan.milestones.find((milestone) => milestone.id === "day-of")?.date).toBe(
+      addDays(TODAY, 15),
+    );
   });
 
   it("pulls overdue tasks forward, never before today, and marks them rushed", () => {
@@ -54,7 +62,11 @@ describe("buildTimeline", () => {
   it("handles an event happening today", () => {
     const plan = buildTimeline("birthday", TODAY, 10, TODAY);
     expect(plan.daysUntil).toBe(0);
-    expect(plan.milestones.filter((milestone) => milestone.daysBefore >= 0).every((m) => m.date === TODAY)).toBe(true);
+    expect(
+      plan.milestones
+        .filter((milestone) => milestone.daysBefore >= 0)
+        .every((m) => m.date === TODAY),
+    ).toBe(true);
   });
 
   it("adds large-event logistics only above the guest threshold", () => {
@@ -69,7 +81,11 @@ describe("buildTimeline", () => {
       { title: "Book a string quartet", daysBefore: 20 },
     ]);
     const extra = plan.milestones.find((milestone) => milestone.source === "ai");
-    expect(extra).toMatchObject({ id: "ai-1", title: "Book a string quartet", date: addDays(TODAY, 70) });
+    expect(extra).toMatchObject({
+      id: "ai-1",
+      title: "Book a string quartet",
+      date: addDays(TODAY, 70),
+    });
   });
 
   it("assigns phases from the scheduled lead time", () => {

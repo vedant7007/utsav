@@ -34,7 +34,10 @@ export class SlidingWindowRateLimiter {
     if (recent.length >= this.limit) {
       this.hits.set(key, recent);
       const oldest = recent[0] ?? now;
-      const retryAfterSeconds = Math.max(1, Math.ceil((oldest + this.windowMs - now) / MS_PER_SECOND));
+      const retryAfterSeconds = Math.max(
+        1,
+        Math.ceil((oldest + this.windowMs - now) / MS_PER_SECOND),
+      );
       return { allowed: false, remaining: 0, retryAfterSeconds };
     }
 

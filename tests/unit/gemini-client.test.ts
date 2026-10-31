@@ -8,7 +8,12 @@ vi.mock("@google/genai", () => ({
   ThinkingLevel: { MINIMAL: "MINIMAL" },
 }));
 
-import { GeminiModel, MAX_OUTPUT_TOKENS, minimalThinking, resetModelForTests } from "@/lib/ai/gemini";
+import {
+  GeminiModel,
+  MAX_OUTPUT_TOKENS,
+  minimalThinking,
+  resetModelForTests,
+} from "@/lib/ai/gemini";
 
 const options = { system: "sys", prompt: "hello", maxOutputTokens: MAX_OUTPUT_TOKENS.chat };
 
@@ -35,7 +40,9 @@ describe("GeminiModel", () => {
   });
 
   it("falls back to the next model on overload", async () => {
-    generateContent.mockRejectedValueOnce(Object.assign(new Error("busy"), { status: 503 })).mockResolvedValueOnce({ text: "ok" });
+    generateContent
+      .mockRejectedValueOnce(Object.assign(new Error("busy"), { status: 503 }))
+      .mockResolvedValueOnce({ text: "ok" });
     const model = new GeminiModel("key", ["model-a", "model-b"]);
     expect(await model.generate(options)).toBe("ok");
     expect(generateContent.mock.calls[1]?.[0].model).toBe("model-b");

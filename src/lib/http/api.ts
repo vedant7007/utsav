@@ -17,7 +17,10 @@ export function errorResponse(
   extra: Record<string, unknown> = {},
   headers: Record<string, string> = {},
 ): NextResponse {
-  return NextResponse.json({ error: { code, message, ...extra } }, { status, headers: { ...NO_STORE, ...headers } });
+  return NextResponse.json(
+    { error: { code, message, ...extra } },
+    { status, headers: { ...NO_STORE, ...headers } },
+  );
 }
 
 export function okResponse(body: unknown): NextResponse {
@@ -50,7 +53,10 @@ export async function parseJsonRequest<S extends z.ZodType>(
   limiter: SlidingWindowRateLimiter,
 ): Promise<Parsed<z.output<S>>> {
   if (!isAllowedOrigin(request)) {
-    return { ok: false, response: errorResponse(403, "forbidden_origin", "Cross-site requests are not allowed.") };
+    return {
+      ok: false,
+      response: errorResponse(403, "forbidden_origin", "Cross-site requests are not allowed."),
+    };
   }
   const decision = limiter.check(clientKey(request.headers));
   if (!decision.allowed) {
@@ -70,11 +76,17 @@ export async function parseJsonRequest<S extends z.ZodType>(
   }
   const declared = Number(request.headers.get("content-length") ?? 0);
   if (declared > MAX_BODY_BYTES) {
-    return { ok: false, response: errorResponse(413, "payload_too_large", "Request body is too large.") };
+    return {
+      ok: false,
+      response: errorResponse(413, "payload_too_large", "Request body is too large."),
+    };
   }
   const text = await request.text();
   if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
-    return { ok: false, response: errorResponse(413, "payload_too_large", "Request body is too large.") };
+    return {
+      ok: false,
+      response: errorResponse(413, "payload_too_large", "Request body is too large."),
+    };
   }
   let json: unknown;
   try {

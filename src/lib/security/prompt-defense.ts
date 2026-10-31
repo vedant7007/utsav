@@ -22,7 +22,10 @@ const FENCE_PATTERN = new RegExp(`<\\/?\\s*${FENCE_TAG}[^>]*>`, "gi");
  * @param text - free text from the user.
  */
 export function countInjectionAttempts(text: string): number {
-  return INJECTION_PATTERNS.reduce((total, pattern) => total + (text.match(pattern)?.length ?? 0), 0);
+  return INJECTION_PATTERNS.reduce(
+    (total, pattern) => total + (text.match(pattern)?.length ?? 0),
+    0,
+  );
 }
 
 /**

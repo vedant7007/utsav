@@ -1,8 +1,8 @@
 import { type BudgetPlan, buildBudget } from "./budget";
 import { buildChecklist, type VendorGroup } from "./checklist";
 import { LIMITS } from "./constants";
-import { curatedIdeas } from "./ideas";
-import type { AiIdeas, EventBrief } from "./schema";
+import { curatedIdeas, withDefaults } from "./ideas";
+import type { AiIdeas, EventBrief, PlanIdeas } from "./schema";
 import { buildTimeline, daysBetween, type TimelinePlan } from "./timeline";
 
 /** Where the ideas in a plan came from. Shown to the user for transparency. */
@@ -13,7 +13,7 @@ export interface EventPlan {
   budget: BudgetPlan;
   timeline: TimelinePlan;
   checklist: VendorGroup[];
-  ideas: AiIdeas;
+  ideas: PlanIdeas;
   ideasSource: IdeasSource;
   generatedAt: string;
 }
@@ -40,10 +40,16 @@ export function validateEventDate(date: string, today: string): string | null {
  * @param ai - optional ideas from Gemini.
  */
 export function buildPlan(brief: EventBrief, today: string, ai?: AiIdeas | null): EventPlan {
-  const ideas = ai ?? curatedIdeas(brief);
+  const ideas = ai ? withDefaults(ai, brief) : curatedIdeas(brief);
   return {
     brief,
-    budget: buildBudget(brief.eventType, brief.budget, brief.guests, brief.currency, brief.priorities),
+    budget: buildBudget(
+      brief.eventType,
+      brief.budget,
+      brief.guests,
+      brief.currency,
+      brief.priorities,
+    ),
     timeline: buildTimeline(brief.eventType, brief.date, brief.guests, today, ideas.extraTasks),
     checklist: buildChecklist(brief.eventType, brief.guests, brief.notes),
     ideas,

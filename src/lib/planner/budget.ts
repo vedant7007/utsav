@@ -1,4 +1,10 @@
-import { type Currency, type EventType, MIN_PER_GUEST, PRIORITY_BOOST, type Priority } from "./constants";
+import {
+  type Currency,
+  type EventType,
+  MIN_PER_GUEST,
+  PRIORITY_BOOST,
+  type Priority,
+} from "./constants";
 
 /** A budget line in the plan. `share` is a fraction of the total (0..1). */
 export interface BudgetLine {
@@ -125,7 +131,10 @@ export function computeShares(template: CategoryTemplate[], priorities: Priority
     .map(({ index }) => index);
   const donorTotal = donorIndexes.reduce((sum, index) => sum + (base[index] ?? 0), 0);
   const moved = donorTotal * PRIORITY_BOOST;
-  const priorityTotal = base.reduce((sum, value, index) => sum + (isPriority[index] ? value : 0), 0);
+  const priorityTotal = base.reduce(
+    (sum, value, index) => sum + (isPriority[index] ? value : 0),
+    0,
+  );
 
   return base.map((value, index) => {
     if (isPriority[index]) return value + moved * (value / priorityTotal);

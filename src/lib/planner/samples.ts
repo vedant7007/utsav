@@ -2,7 +2,9 @@ import type { EventBriefInput } from "./schema";
 import { addDays } from "./timeline";
 
 /** Ready-made briefs so a first-time visitor can see a full plan in one click. */
-export function sampleBriefs(today: string): { id: string; label: string; brief: EventBriefInput }[] {
+export function sampleBriefs(
+  today: string,
+): { id: string; label: string; brief: EventBriefInput }[] {
   return [
     {
       id: "wedding",

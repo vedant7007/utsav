@@ -15,6 +15,9 @@ Given an event brief, produce personalised ideas as JSON matching the schema.
 Make every idea specific to the event type, theme, guest count, city and budget per guest.
 Keep each list item under 25 words and actionable. Saving tips must suit this budget.
 extraTasks: up to 4 planning tasks that the standard checklist would miss for THIS brief, with realistic lead times in days before the event.
+palette: 4 or 5 colours that express the theme, each with an evocative name and a #RRGGBB hex code.
+runSheet: the event day hour by hour, 5 to 8 entries, in order, suited to the event type and any traditions mentioned.
+inviteMessage: a warm WhatsApp invitation under 80 words using the real event name, date and city. No placeholders, no hashtags.
 ${SAFETY_RULES}`;
 
 export const ASSISTANT_SYSTEM_PROMPT = `You are Utsav, a friendly event-planning assistant helping one host with one event.
@@ -29,7 +32,8 @@ ${SAFETY_RULES}`;
  */
 export function describeBrief(brief: EventBrief): string {
   const perGuest = Math.round(brief.budget / brief.guests);
-  const priorities = brief.priorities.map((priority) => PRIORITY_LABELS[priority]).join(", ") || "none";
+  const priorities =
+    brief.priorities.map((priority) => PRIORITY_LABELS[priority]).join(", ") || "none";
   return [
     `Event type: ${EVENT_LABELS[brief.eventType]}`,
     `Date: ${brief.date}`,
@@ -56,7 +60,11 @@ export function ideasPrompt(brief: EventBrief): string {
  */
 export function assistantPrompt(brief: EventBrief, history: ChatTurn[], message: string): string {
   const transcript = history
-    .map((turn) => (turn.role === "user" ? fenceUntrusted("earlier-question", turn.content) : `Utsav: ${turn.content}`))
+    .map((turn) =>
+      turn.role === "user"
+        ? fenceUntrusted("earlier-question", turn.content)
+        : `Utsav: ${turn.content}`,
+    )
     .join("\n");
   return [
     `Event brief:\n${describeBrief(brief)}`,

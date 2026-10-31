@@ -32,7 +32,11 @@ async function postJson<T>(url: string, body: unknown, signal?: AbortSignal): Pr
     error?: { message?: string; fields?: Record<string, string> };
   };
   if (!response.ok) {
-    throw new ApiError(data.error?.message ?? "Something went wrong.", response.status, data.error?.fields);
+    throw new ApiError(
+      data.error?.message ?? "Something went wrong.",
+      response.status,
+      data.error?.fields,
+    );
   }
   return data as T;
 }

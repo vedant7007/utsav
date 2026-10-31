@@ -10,8 +10,20 @@ import { makeBrief, TODAY } from "../fixtures";
 
 describe("eventBriefSchema", () => {
   it("accepts a valid brief and fills defaults", () => {
-    const result = eventBriefSchema.parse({ eventType: "birthday", title: "Party", date: "2027-01-10", guests: "12", budget: "5000" });
-    expect(result).toMatchObject({ guests: 12, budget: 5000, currency: "INR", priorities: [], notes: "" });
+    const result = eventBriefSchema.parse({
+      eventType: "birthday",
+      title: "Party",
+      date: "2027-01-10",
+      guests: "12",
+      budget: "5000",
+    });
+    expect(result).toMatchObject({
+      guests: 12,
+      budget: 5000,
+      currency: "INR",
+      priorities: [],
+      notes: "",
+    });
   });
 
   it("cleans control characters and extra whitespace from text", () => {
@@ -30,7 +42,9 @@ describe("eventBriefSchema", () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       const errors = fieldErrors(result.error);
-      expect(Object.keys(errors)).toEqual(expect.arrayContaining(["eventType", "title", "date", "guests", "budget", "currency"]));
+      expect(Object.keys(errors)).toEqual(
+        expect.arrayContaining(["eventType", "title", "date", "guests", "budget", "currency"]),
+      );
       expect(errors.date).toBe("Enter a real calendar date");
     }
   });
@@ -41,12 +55,21 @@ describe("eventBriefSchema", () => {
   });
 
   it("limits priorities to three and removes duplicates", () => {
-    expect(eventBriefSchema.safeParse({ ...makeBrief(), priorities: ["food", "decor", "venue", "attire"] }).success).toBe(false);
-    expect(eventBriefSchema.parse({ ...makeBrief(), priorities: ["food", "food"] }).priorities).toEqual(["food"]);
+    expect(
+      eventBriefSchema.safeParse({
+        ...makeBrief(),
+        priorities: ["food", "decor", "venue", "attire"],
+      }).success,
+    ).toBe(false);
+    expect(
+      eventBriefSchema.parse({ ...makeBrief(), priorities: ["food", "food"] }).priorities,
+    ).toEqual(["food"]);
   });
 
   it("caps free-text length", () => {
-    expect(eventBriefSchema.safeParse({ ...makeBrief(), notes: "x".repeat(501) }).success).toBe(false);
+    expect(eventBriefSchema.safeParse({ ...makeBrief(), notes: "x".repeat(501) }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -64,11 +87,15 @@ describe("buildChecklist", () => {
     const caterer = groups.find((group) => group.id === "caterer");
     expect(caterer?.tasks.at(-1)?.text).toMatch(/dietary/);
     const plain = buildChecklist("birthday", 20, "");
-    expect(plain.find((group) => group.id === "caterer")?.tasks.length).toBe((caterer?.tasks.length ?? 0) - 1);
+    expect(plain.find((group) => group.id === "caterer")?.tasks.length).toBe(
+      (caterer?.tasks.length ?? 0) - 1,
+    );
   });
 
   it("includes security only for large events and gives every task a unique id", () => {
-    expect(buildChecklist("community", 50, "").some((group) => group.id === "security")).toBe(false);
+    expect(buildChecklist("community", 50, "").some((group) => group.id === "security")).toBe(
+      false,
+    );
     const large = buildChecklist("community", 500, "");
     expect(large.some((group) => group.id === "security")).toBe(true);
     const ids = large.flatMap((group) => group.tasks.map((task) => task.id));
@@ -105,7 +132,9 @@ describe("buildIcs", () => {
   it("escapes special characters and folds long lines", () => {
     expect(escapeIcsText("a,b;c\\d\ne")).toBe("a\\,b\\;c\\\\d\\ne");
     const folded = foldIcsLine(`SUMMARY:${"x".repeat(100)}`);
-    expect(folded.split("\r\n").every((line) => new TextEncoder().encode(line).length <= 75)).toBe(true);
+    expect(folded.split("\r\n").every((line) => new TextEncoder().encode(line).length <= 75)).toBe(
+      true,
+    );
     expect(folded.replace(/\r\n /g, "")).toBe(`SUMMARY:${"x".repeat(100)}`);
   });
 
@@ -129,14 +158,21 @@ describe("buildPlan and samples", () => {
   });
 
   it("marks AI ideas and merges their extra tasks into the timeline", () => {
-    const ai = { ...curatedIdeas(makeBrief()), extraTasks: [{ title: "Book a dhol player", daysBefore: 30 }] };
+    const ai = {
+      ...curatedIdeas(makeBrief()),
+      extraTasks: [{ title: "Book a dhol player", daysBefore: 30 }],
+    };
     const plan = buildPlan(makeBrief(), TODAY, ai);
     expect(plan.ideasSource).toBe("gemini");
-    expect(plan.timeline.milestones.some((milestone) => milestone.title === "Book a dhol player")).toBe(true);
+    expect(
+      plan.timeline.milestones.some((milestone) => milestone.title === "Book a dhol player"),
+    ).toBe(true);
   });
 
   it("describes the brief in curated summaries, with or without a city and theme", () => {
-    expect(curatedIdeas(makeBrief({ city: "", theme: "" })).summary).toContain("a warm, personal celebration");
+    expect(curatedIdeas(makeBrief({ city: "", theme: "" })).summary).toContain(
+      "a warm, personal celebration",
+    );
     expect(curatedIdeas(makeBrief()).summary).toContain("in Hyderabad");
   });
 
@@ -145,5 +181,30 @@ describe("buildPlan and samples", () => {
       const brief = eventBriefSchema.parse(sample.brief);
       expect(validateEventDate(brief.date, TODAY)).toBeNull();
     }
+  });
+});
+
+describe("plan extras", () => {
+  it("always has a palette, run sheet and invitation", () => {
+    const plan = buildPlan(makeBrief({ city: "" }), TODAY);
+    expect(plan.ideas.palette.length).toBeGreaterThanOrEqual(3);
+    expect(plan.ideas.runSheet.length).toBeGreaterThanOrEqual(3);
+    expect(plan.ideas.inviteMessage).toContain("Test Wedding");
+    expect(plan.ideas.inviteMessage).not.toContain(" in ,");
+  });
+
+  it("keeps AI extras when present and fills missing ones", () => {
+    const { palette: _p, runSheet: _r, inviteMessage: _i, ...core } = curatedIdeas(makeBrief());
+    const ai = {
+      ...core,
+      palette: [
+        { name: "A", hex: "#000000" },
+        { name: "B", hex: "#111111" },
+        { name: "C", hex: "#222222" },
+      ],
+    };
+    const plan = buildPlan(makeBrief(), TODAY, ai);
+    expect(plan.ideas.palette[0]?.name).toBe("A");
+    expect(plan.ideas.runSheet.length).toBeGreaterThan(0);
   });
 });

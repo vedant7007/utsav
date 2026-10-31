@@ -1,4 +1,10 @@
-import { BUDGET_TEMPLATES, buildBudget, computeShares, roundPreservingSum, summariseSpend } from "@/lib/planner/budget";
+import {
+  BUDGET_TEMPLATES,
+  buildBudget,
+  computeShares,
+  roundPreservingSum,
+  summariseSpend,
+} from "@/lib/planner/budget";
 import { EVENT_TYPES } from "@/lib/planner/constants";
 
 describe("budget templates", () => {
@@ -47,7 +53,9 @@ describe("computeShares", () => {
 
   it("ignores priorities that do not map to any category", () => {
     const community = BUDGET_TEMPLATES.community;
-    expect(computeShares(community, ["attire"])).toEqual(community.map((category) => category.weight / 100));
+    expect(computeShares(community, ["attire"])).toEqual(
+      community.map((category) => category.weight / 100),
+    );
   });
 });
 
@@ -55,7 +63,10 @@ describe("buildBudget", () => {
   it("allocates the whole budget across lines with no rounding drift", () => {
     const plan = buildBudget("wedding", 1_234_567, 250, "INR", ["food", "photography"]);
     expect(plan.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(1_234_567);
-    expect(plan.lines.filter((line) => line.priority).map((line) => line.id)).toEqual(["catering", "photo"]);
+    expect(plan.lines.filter((line) => line.priority).map((line) => line.id)).toEqual([
+      "catering",
+      "photo",
+    ]);
   });
 
   it("rounds fractional totals to whole currency units", () => {

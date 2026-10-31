@@ -3,12 +3,10 @@ import { CURRENCIES, EVENT_TYPES, LIMITS, PRIORITY_OPTIONS } from "./constants";
 
 /** Strips control characters and collapses whitespace in free text from users. */
 export function cleanText(value: string): string {
-  return (
-    value
-      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
-      .replace(/\s+/g, " ")
-      .trim()
-  );
+  return value
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const text = (max: number) => z.string().transform(cleanText).pipe(z.string().max(max));
@@ -69,9 +67,32 @@ export const aiIdeasSchema = z.object({
     )
     .max(4)
     .default([]),
+  palette: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(30),
+        hex: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a #RRGGBB colour"),
+      }),
+    )
+    .min(3)
+    .max(5)
+    .optional(),
+  runSheet: z
+    .array(
+      z.object({
+        time: z.string().min(1).max(12),
+        activity: z.string().min(1).max(120),
+      }),
+    )
+    .min(3)
+    .max(8)
+    .optional(),
+  inviteMessage: z.string().min(20).max(600).optional(),
 });
 
 export type AiIdeas = z.output<typeof aiIdeasSchema>;
+/** Ideas after merging with curated defaults: the optional extras are always present. */
+export type PlanIdeas = AiIdeas & Required<Pick<AiIdeas, "palette" | "runSheet" | "inviteMessage">>;
 
 /** JSON schema handed to Gemini's structured output so it answers in the shape above. */
 export const AI_IDEAS_JSON_SCHEMA = {
@@ -95,8 +116,46 @@ export const AI_IDEAS_JSON_SCHEMA = {
         required: ["title", "daysBefore"],
       },
     },
+    palette: {
+      type: "array",
+      description: "Colour palette for the theme: evocative names with hex codes.",
+      minItems: 4,
+      maxItems: 5,
+      items: {
+        type: "object",
+        properties: { name: { type: "string" }, hex: { type: "string", description: "#RRGGBB" } },
+        required: ["name", "hex"],
+      },
+    },
+    runSheet: {
+      type: "array",
+      description: "Event-day schedule in order, with clock times such as 6:30 PM.",
+      minItems: 5,
+      maxItems: 8,
+      items: {
+        type: "object",
+        properties: { time: { type: "string" }, activity: { type: "string" } },
+        required: ["time", "activity"],
+      },
+    },
+    inviteMessage: {
+      type: "string",
+      description:
+        "A warm, ready-to-send WhatsApp invitation under 80 words, with the event name, date and city. No placeholders.",
+    },
   },
-  required: ["summary", "themeConcept", "decor", "food", "activities", "savingTips", "extraTasks"],
+  required: [
+    "summary",
+    "themeConcept",
+    "decor",
+    "food",
+    "activities",
+    "savingTips",
+    "extraTasks",
+    "palette",
+    "runSheet",
+    "inviteMessage",
+  ],
 } as const;
 
 /** One turn of the planning assistant conversation. */
