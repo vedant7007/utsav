@@ -5,6 +5,7 @@ Utsav is a GenAI planning assistant for **weddings, birthdays, anniversaries and
 Built for **PromptWars Virtual, Challenge 5: Celebration and Event Planner**.
 
 - **Live app:** https://utsav-planner-nine.vercel.app
+- **Demo video:** https://youtu.be/L5zONBwZaKI
 - **Stack:** Next.js 16 (App Router), React 19, TypeScript (strict), Tailwind CSS 4, Zod, Google Gemini (`@google/genai`), Vitest, axe-core
 
 | Plan your event                            | Your plan                                                     | Budget rangoli and what-if                 | Gemini ideas and palette                 |
