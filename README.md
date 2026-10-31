@@ -7,6 +7,10 @@ Built for **PromptWars Virtual, Challenge 5: Celebration and Event Planner**.
 - **Live app:** https://utsav-planner-nine.vercel.app
 - **Stack:** Next.js 16 (App Router), React 19, TypeScript (strict), Tailwind CSS 4, Zod, Google Gemini (`@google/genai`), Vitest, axe-core
 
+| Plan your event                            | Your plan                                                     | Budget rangoli and what-if                 | Gemini ideas and palette                 |
+| ------------------------------------------ | ------------------------------------------------------------- | ------------------------------------------ | ---------------------------------------- |
+| ![Landing page](docs/screenshots/home.jpg) | ![Plan header with budget rangoli](docs/screenshots/plan.jpg) | ![Budget tab](docs/screenshots/budget.jpg) | ![Ideas tab](docs/screenshots/ideas.jpg) |
+
 ## How it meets the challenge
 
 | Challenge asks for                             | What Utsav does                                                                                                                                                                                                                                                                                            |
@@ -14,7 +18,7 @@ Built for **PromptWars Virtual, Challenge 5: Celebration and Event Planner**.
 | Organize weddings, birthdays, community events | Four event types, each with its own budget template, timeline and vendor list. It covers Indian traditions (muhurat, mehendi, sangeet, permits for a mela) without assuming them.                                                                                                                          |
 | Budgets                                        | Category split per event type. Up to three priorities (for example food or photography) get a larger share, and the contingency buffer is protected. Amounts always add up to the exact total. Per-guest check with a "tight budget" warning. Planned versus actual spend tracker with over-budget alerts. |
 | Timelines                                      | Every milestone is dated back from the event date. If the event is soon, overdue tasks are spread across a catch-up window and marked "Do soon". Exports to `.ics` for Google Calendar, Outlook or Apple Calendar.                                                                                         |
-| Vendor checklists                              | Tasks for each vendor (venue, caterer, decorator, photographer, permits, first aid and more). Dietary notes add caterer tasks, accessibility notes (step-free access, wheelchairs, elderly guests) add venue checks, and events over 150 guests add security and parking. Progress is tracked.                                                                                                   |
+| Vendor checklists                              | Tasks for each vendor (venue, caterer, decorator, photographer, permits, first aid and more). Dietary notes add caterer tasks, accessibility notes (step-free access, wheelchairs, elderly guests) add venue checks, and events over 150 guests add security and parking. Progress is tracked.             |
 | Personalized ideas                             | Gemini writes a theme concept, decor, food, activities, saving tips, and up to four extra timeline tasks for your specific brief.                                                                                                                                                                          |
 | GenAI assistant                                | "Ask Utsav" chat answers questions about the plan within your budget and currency.                                                                                                                                                                                                                         |
 
@@ -43,7 +47,8 @@ src/
   lib/ai/              Gemini client, prompts, LRU cache, validation and fallbacks
   lib/http/            request pipeline and injectable handlers
   lib/security/        CSP and headers, rate limiter, prompt-injection defense
-tests/                 unit, API and component suites (137 tests)
+tests/                 unit, API and component suites (138 tests)
+e2e/                   Playwright browser tests with axe, desktop and mobile (20 runs)
 ```
 
 ## Evaluation criteria
@@ -74,11 +79,12 @@ See [SECURITY.md](SECURITY.md) for the threat model.
 
 ### Testing
 
-- **137 tests:** 97.8% line and 90.5% branch coverage (`npm run test:coverage`, thresholds enforced).
+- **138 unit, API and component tests:** 97.8% line and 90.5% branch coverage (`npm run test:coverage`, thresholds enforced).
 - **Unit tests:** budget maths (exact sums, priorities, thresholds), timeline compression and leap years, ICS escaping and folding, schemas, cache, rate limiter, prompt defense, and the Gemini client with its fallback chain (SDK mocked).
 - **API tests:** validation, 400/403/413/415/422/429 paths, offline and AI modes.
 - **Component tests:** restoring tampered or stale saved plans, countdown wording, the what-if simulator, keyboard tab navigation, error summary focus, spend tracker, checklist, calendar export, persistence, network fallback, and chat. Each runs **axe-core** checks.
-- **CI:** GitHub Actions runs audit, lint, typecheck, coverage and build.
+- **End-to-end:** 10 Playwright scenarios run on desktop and mobile (20 runs) against the production build. They cover the full planning flow, the what-if simulator, persistence across reloads, keyboard-only tabs, offline chat, security headers and API rejection paths, with an axe WCAG 2.1 AA scan on every screen.
+- **CI:** GitHub Actions runs audit, lint, typecheck, coverage, build and the end-to-end suite.
 
 ### Accessibility
 
@@ -103,7 +109,7 @@ npm run dev                  # http://localhost:3000
 Without a key, Utsav runs in **offline mode**: budgets, timelines and checklists are complete, and ideas come from curated sets.
 
 ```bash
-npm run verify   # lint + typecheck + tests with coverage + production build
+npm run verify   # lint + typecheck + tests with coverage + production build + e2e
 ```
 
 ## Deploy
