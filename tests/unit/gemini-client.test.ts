@@ -5,9 +5,10 @@ vi.mock("@google/genai", () => ({
   GoogleGenAI: class {
     models = { generateContent };
   },
+  ThinkingLevel: { MINIMAL: "MINIMAL" },
 }));
 
-import { GeminiModel, MAX_OUTPUT_TOKENS, resetModelForTests } from "@/lib/ai/gemini";
+import { GeminiModel, MAX_OUTPUT_TOKENS, minimalThinking, resetModelForTests } from "@/lib/ai/gemini";
 
 const options = { system: "sys", prompt: "hello", maxOutputTokens: MAX_OUTPUT_TOKENS.chat };
 
@@ -16,10 +17,10 @@ beforeEach(() => generateContent.mockReset());
 describe("GeminiModel", () => {
   it("sends the system prompt, token cap and disables thinking", async () => {
     generateContent.mockResolvedValue({ text: "  hi  " });
-    const model = new GeminiModel("key", ["model-a"]);
+    const model = new GeminiModel("key", ["gemini-2.5-flash"]);
     expect(await model.generate({ ...options, jsonSchema: { type: "object" } })).toBe("hi");
     const request = generateContent.mock.calls[0]?.[0];
-    expect(request.model).toBe("model-a");
+    expect(request.model).toBe("gemini-2.5-flash");
     expect(request.config).toMatchObject({
       systemInstruction: "sys",
       maxOutputTokens: MAX_OUTPUT_TOKENS.chat,
@@ -27,6 +28,10 @@ describe("GeminiModel", () => {
       responseMimeType: "application/json",
     });
     expect(request.config.abortSignal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("uses a thinking level for Gemini 3 models", () => {
+    expect(minimalThinking("gemini-3.5-flash-lite")).toEqual({ thinkingLevel: "MINIMAL" });
   });
 
   it("falls back to the next model on overload", async () => {

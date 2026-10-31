@@ -1,9 +1,9 @@
 import "server-only";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, type ThinkingConfig, ThinkingLevel } from "@google/genai";
 
-/** Lowest-cost Gemini model; planning ideas do not need a larger one. */
-export const DEFAULT_MODEL = "gemini-2.5-flash-lite";
-/** Used when the primary model is overloaded or rate limited. */
+/** Lowest-cost current Gemini model; planning ideas do not need a larger one. */
+export const DEFAULT_MODEL = "gemini-3.5-flash-lite";
+/** Used when the primary model is overloaded, rate limited or retired. */
 export const FALLBACK_MODEL = "gemini-flash-lite-latest";
 /** Hard ceilings that cap spend per request. */
 export const MAX_OUTPUT_TOKENS = { ideas: 1_200, chat: 400 } as const;
@@ -24,12 +24,23 @@ export interface TextModel {
   generate(options: GenerateOptions): Promise<string>;
 }
 
-/** Whether an error is worth retrying on the fallback model (overload, quota, timeouts). */
+/**
+ * Whether an error is worth retrying on the fallback model: overload, quota, timeouts, or a
+ * 404 from a model that Google has retired.
+ */
 export function isRetryable(error: unknown): boolean {
   const status = (error as { status?: number } | null)?.status;
-  if (status === 429 || (typeof status === "number" && status >= 500)) return true;
+  if (status === 404 || status === 429 || (typeof status === "number" && status >= 500)) return true;
   const name = (error as { name?: string } | null)?.name;
   return name === "TimeoutError" || name === "AbortError";
+}
+
+/**
+ * Thinking tokens are billed and short planning outputs do not need them. Gemini 2.5 takes a
+ * token budget; Gemini 3 and later take a level.
+ */
+export function minimalThinking(model: string): ThinkingConfig {
+  return model.startsWith("gemini-2.5") ? { thinkingBudget: 0 } : { thinkingLevel: ThinkingLevel.MINIMAL };
 }
 
 /** Google Gemini through the official @google/genai SDK. */
@@ -56,8 +67,7 @@ export class GeminiModel implements TextModel {
             systemInstruction: system,
             maxOutputTokens,
             temperature,
-            // Thinking tokens are billed; short planning outputs do not need them.
-            thinkingConfig: { thinkingBudget: 0 },
+            thinkingConfig: minimalThinking(model),
             abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
             ...(jsonSchema ? { responseMimeType: "application/json", responseJsonSchema: jsonSchema } : {}),
           },

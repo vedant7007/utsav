@@ -162,6 +162,7 @@ describe("gemini configuration", () => {
     expect(isRetryable({ status: 429 })).toBe(true);
     expect(isRetryable({ status: 503 })).toBe(true);
     expect(isRetryable({ name: "TimeoutError" })).toBe(true);
+    expect(isRetryable({ status: 404 })).toBe(true);
     expect(isRetryable({ status: 400 })).toBe(false);
     expect(isRetryable(null)).toBe(false);
   });
