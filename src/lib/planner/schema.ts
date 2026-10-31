@@ -161,7 +161,7 @@ export const AI_IDEAS_JSON_SCHEMA = {
 /** One turn of the planning assistant conversation. */
 export const chatTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),
-  content: text(LIMITS.chatMessageMax * 2).pipe(z.string().min(1)),
+  content: text(LIMITS.chatReplyMax).pipe(z.string().min(1)),
 });
 
 export const assistantRequestSchema = z.object({

@@ -159,7 +159,7 @@ export function curatedIdeas(brief: EventBrief): PlanIdeas {
   const theme = brief.theme || "a warm, personal celebration";
   const place = brief.city ? ` in ${brief.city}` : "";
   return {
-    summary: `A ${brief.guests}-guest ${brief.eventType}${place} built around ${theme}. Budget, timeline and vendor checklist are ready below.`,
+    summary: `A ${brief.guests}-guest ${EVENT_LABELS[brief.eventType].toLowerCase()}${place} built around ${theme}. Budget, timeline and vendor checklist are ready below.`,
     themeConcept: `Bring "${theme}" to life through colour, food and one signature moment guests will remember.`,
     ...base,
     extraTasks: [],

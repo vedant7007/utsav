@@ -1,4 +1,4 @@
-import { todayIso } from "@/lib/planner/format";
+import { localTodayIso } from "@/lib/planner/format";
 import { buildPlan, type EventPlan } from "@/lib/planner/plan";
 import type { ChatTurn, EventBrief } from "@/lib/planner/schema";
 
@@ -52,7 +52,7 @@ export async function requestPlan(brief: EventBrief, signal?: AbortSignal): Prom
   } catch (error) {
     if (error instanceof ApiError && error.status < 500) throw error;
     if ((error as Error).name === "AbortError") throw error;
-    return { plan: buildPlan(brief, todayIso()), ai: "local" };
+    return { plan: buildPlan(brief, localTodayIso()), ai: "local" };
   }
 }
 

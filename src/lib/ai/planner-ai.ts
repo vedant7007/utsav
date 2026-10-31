@@ -1,3 +1,4 @@
+import "server-only";
 import {
   type AiIdeas,
   aiIdeasSchema,
@@ -6,6 +7,7 @@ import {
   type EventBrief,
 } from "@/lib/planner/schema";
 import { countInjectionAttempts } from "@/lib/security/prompt-defense";
+import { LIMITS } from "@/lib/planner/constants";
 import { stableKey, TtlLruCache } from "./cache";
 import { MAX_OUTPUT_TOKENS, type TextModel } from "./gemini";
 import {
@@ -75,8 +77,8 @@ export async function generateIdeas(
   brief: EventBrief,
 ): Promise<IdeasOutcome> {
   if (!model) return { ideas: null, reason: "offline" };
-  // The date affects only scheduling, which is deterministic, so it is left out of the key.
-  const key = stableKey({ ...brief, date: undefined, model: model.id });
+  // The whole brief is the key: the date appears in the generated invitation.
+  const key = stableKey({ ...brief, model: model.id });
   const hit = ideasCache.get(key);
   if (hit) return { ideas: hit, reason: "cached" };
 
@@ -113,7 +115,7 @@ export function offlineReply(message: string, brief: EventBrief): string {
     return "For each vendor: collect three quotes, check recent full-event work rather than highlights, and sign a written agreement with dates, inclusions and cancellation terms. The Vendors tab tracks each step.";
   }
   if (/time|when|schedule|late|week|month/.test(text)) {
-    return `Your Timeline tab schedules every task back from ${brief.date}. Anything marked "rushed" should be done this week. Add it to your calendar with the .ics download.`;
+    return `Your Timeline tab schedules every task back from ${brief.date}. Anything marked "Do soon" should be done this week. Add it to your calendar with the .ics download.`;
   }
   return "I can help with budget splits, vendor booking, timelines and ideas for this celebration. Add a Gemini API key to unlock fully personalised answers.";
 }
@@ -129,7 +131,8 @@ export async function answerQuestion(
   message: string,
 ): Promise<{ reply: string; source: "gemini" | "offline" }> {
   if (!model) return { reply: offlineReply(message, brief), source: "offline" };
-  if (countInjectionAttempts(message) > 0)
+  const untrusted = [message, ...history.map((turn) => turn.content)].join(" ");
+  if (countInjectionAttempts(untrusted) > 0)
     console.warn("[utsav] suspected prompt injection in chat");
   try {
     const reply = await model.generate({
@@ -138,7 +141,8 @@ export async function answerQuestion(
       maxOutputTokens: MAX_OUTPUT_TOKENS.chat,
       temperature: 0.6,
     });
-    return { reply: reply.slice(0, 1_500), source: "gemini" };
+    // Capped below the history limit so the reply can be sent back as context next turn.
+    return { reply: reply.slice(0, LIMITS.chatReplyMax).trim(), source: "gemini" };
   } catch (error) {
     console.error("[utsav] assistant failed:", (error as Error).message);
     return { reply: offlineReply(message, brief), source: "offline" };

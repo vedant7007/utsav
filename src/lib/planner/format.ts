@@ -47,6 +47,15 @@ export function formatPercent(share: number): string {
   return `${Math.round(share * 100)}%`;
 }
 
+/** Today's date in the browser's own time zone, falling back to India on the server. */
+export function localTodayIso(now: Date = new Date()): string {
+  const zone =
+    typeof window === "undefined"
+      ? "Asia/Kolkata"
+      : Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return todayIso(zone, now);
+}
+
 /** Today's date as YYYY-MM-DD in the given IANA time zone (defaults to India). */
 export function todayIso(timeZone = "Asia/Kolkata", now: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone }).format(now);

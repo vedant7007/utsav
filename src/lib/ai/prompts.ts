@@ -61,9 +61,10 @@ export function ideasPrompt(brief: EventBrief): string {
 export function assistantPrompt(brief: EventBrief, history: ChatTurn[], message: string): string {
   const transcript = history
     .map((turn) =>
+      // Both roles arrive from the browser, so earlier answers are fenced as untrusted too.
       turn.role === "user"
         ? fenceUntrusted("earlier-question", turn.content)
-        : `Utsav: ${turn.content}`,
+        : fenceUntrusted("earlier-answer", turn.content),
     )
     .join("\n");
   return [

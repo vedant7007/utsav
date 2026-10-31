@@ -4,8 +4,11 @@ import { fieldErrors } from "@/lib/planner/schema";
 import type { SlidingWindowRateLimiter } from "@/lib/security/rate-limit";
 import { clientKey } from "@/lib/security/rate-limit";
 
-/** Largest accepted JSON body. A full brief with history is well under 8 KB. */
-export const MAX_BODY_BYTES = 16 * 1024;
+/**
+ * Largest accepted JSON body. A brief plus six 1,100-character history turns in a non-Latin
+ * script (up to 3 bytes per character) stays under this.
+ */
+export const MAX_BODY_BYTES = 32 * 1024;
 
 const NO_STORE = { "Cache-Control": "no-store" };
 

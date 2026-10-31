@@ -1,8 +1,10 @@
+import "server-only";
 import type { NextResponse } from "next/server";
 import { answerQuestion, generateIdeas } from "@/lib/ai/planner-ai";
 import type { TextModel } from "@/lib/ai/gemini";
 import { todayIso } from "@/lib/planner/format";
 import { buildPlan, validateEventDate } from "@/lib/planner/plan";
+import { addDays } from "@/lib/planner/timeline";
 import { assistantRequestSchema, eventBriefSchema } from "@/lib/planner/schema";
 import {
   chatRateLimiter,
@@ -29,7 +31,8 @@ export function createPlanHandler({
     if (!parsed.ok) return parsed.response;
     const brief = parsed.data;
     const now = today();
-    const dateError = validateEventDate(brief.date, now);
+    // One day of tolerance: a host west of India may still be on the previous calendar day.
+    const dateError = validateEventDate(brief.date, addDays(now, -1));
     if (dateError) {
       return errorResponse(422, "validation_failed", "Some details need fixing.", {
         fields: { date: dateError },

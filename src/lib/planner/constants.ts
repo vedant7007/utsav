@@ -45,7 +45,9 @@ export const LIMITS = {
   budgetMax: 1_000_000_000,
   maxPlanningDays: 730,
   chatMessageMax: 600,
-  chatHistoryMax: 8,
+  /** Longest assistant reply kept; must fit inside a history turn. */
+  chatReplyMax: 1_100,
+  chatHistoryMax: 6,
 } as const;
 
 /** Share of the budget moved towards priorities, taken from non-priority categories. */

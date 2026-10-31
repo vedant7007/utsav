@@ -40,6 +40,16 @@ export function foldIcsLine(line: string): string {
 
 const compact = (isoDate: string) => isoDate.replace(/-/g, "");
 
+/** Short, stable hash so two different plans never share calendar UIDs. */
+export function shortHash(value: string): string {
+  let hash = 2166136261;
+  for (const char of value) {
+    hash ^= char.codePointAt(0) ?? 0;
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
 /**
  * Builds an .ics calendar with one all-day event per milestone, importable into Google
  * Calendar, Outlook and Apple Calendar.
@@ -52,6 +62,7 @@ export function buildIcs(
   milestones: Milestone[],
   stamp: Date = new Date(),
 ): string {
+  const planId = shortHash(eventTitle);
   const dtStamp = stamp
     .toISOString()
     .replace(/[-:]/g, "")
@@ -64,7 +75,7 @@ export function buildIcs(
     "METHOD:PUBLISH",
     ...milestones.flatMap((milestone) => [
       "BEGIN:VEVENT",
-      `UID:${milestone.id}-${compact(milestone.date)}@utsav.planner`,
+      `UID:${planId}-${milestone.id}-${compact(milestone.date)}@utsav.planner`,
       `DTSTAMP:${dtStamp}`,
       `DTSTART;VALUE=DATE:${compact(milestone.date)}`,
       `DTEND;VALUE=DATE:${compact(addDays(milestone.date, 1))}`,

@@ -221,12 +221,20 @@ export const VENDOR_TEMPLATES: Record<EventType, VendorTemplate[]> = {
  */
 export function buildChecklist(eventType: EventType, guests: number, notes: string): VendorGroup[] {
   const dietary = /\b(vegan|vegetarian|jain|halal|gluten|allerg|diabet|nut)/i.test(notes);
+  const access = /\b(wheelchair|step-free|accessib|ramp|elderly|grandparent|mobility|disab)/i.test(
+    notes,
+  );
   return VENDOR_TEMPLATES[eventType]
     .filter((vendor) => vendor.minGuests === undefined || guests > vendor.minGuests)
     .map((vendor) => {
       const tasks = [...vendor.tasks];
       const isFood = ["caterer", "food"].includes(vendor.id);
       if (dietary && isFood) tasks.push("Confirm the special dietary requirements in your notes");
+      if (access && vendor.id === "venue") {
+        tasks.push(
+          "Confirm step-free entry, ramps, accessible restrooms and seating near the stage",
+        );
+      }
       return {
         id: vendor.id,
         vendor: vendor.vendor,
