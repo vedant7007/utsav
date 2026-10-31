@@ -124,10 +124,9 @@ describe("AssistantChat", () => {
     const { container } = render(<AssistantChat brief={makeBrief()} />);
     await user.click(screen.getByRole("button", { name: /cut 15%/ }));
     expect(await screen.findByText("Trim decor by 20%.")).toBeInTheDocument();
-    expect(screen.getByRole("list", { name: "Conversation" })).toHaveAttribute(
-      "aria-live",
-      "polite",
-    );
+    // Only the reply is announced; the transcript itself is not a live region.
+    expect(screen.getByRole("list", { name: "Conversation" })).not.toHaveAttribute("aria-live");
+    expect(screen.getByText(/^Utsav replied: Trim decor/)).toHaveAttribute("aria-live", "polite");
     expect(await axeViolations(container)).toEqual([]);
   });
 

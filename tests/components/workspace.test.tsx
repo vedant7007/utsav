@@ -95,6 +95,7 @@ describe("PlanWorkspace", () => {
     await user.click(screen.getByRole("button", { name: /Add to calendar/ }));
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     expect(click).toHaveBeenCalled();
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:utsav");
   });
 

@@ -27,10 +27,18 @@ export function TimelinePanel({ title, timeline, runSheet }: TimelinePanelProps)
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
+    const slug = title
+      .replace(/[^\w-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase();
     link.href = url;
-    link.download = `${title.replace(/[^\w-]+/g, "-").toLowerCase() || "utsav"}-timeline.ics`;
+    link.download = `${slug || "utsav"}-timeline.ics`;
+    // Some browsers only honour downloads from links in the document, and need the URL
+    // to stay valid until the download has started.
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1_000);
   }
 
   return (

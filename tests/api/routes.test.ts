@@ -123,3 +123,24 @@ describe("POST /api/assistant", () => {
     ).toBe(422);
   });
 });
+
+describe("assistant history round trip", () => {
+  it("accepts a full history of maximum-length replies in a non-Latin script", async () => {
+    const handler = createAssistantHandler({
+      model: () => null,
+      limiter: new SlidingWindowRateLimiter(100, 60_000),
+    });
+    const reply = "शादी".repeat(275); // 1,100 characters, 3 bytes each in UTF-8
+    const history = Array.from({ length: 6 }, (_, index) => ({
+      role: index % 2 ? "assistant" : "user",
+      content: reply,
+    }));
+    const response = await handler(post({ brief: makeBrief(), message: "Next?", history }));
+    expect(response.status).toBe(200);
+  });
+
+  it("allows an event dated yesterday in India for hosts in earlier time zones", async () => {
+    const response = await planHandler()(post(makeBrief({ date: "2026-10-31" })));
+    expect(response.status).toBe(200);
+  });
+});

@@ -35,7 +35,10 @@ export function AssistantChat({ brief }: AssistantChatProps) {
     setError("");
     setBusy(true);
     setDraft("");
-    const history = turns.slice(-LIMITS.chatHistoryMax);
+    // Send only recent turns, each within the server's history limit.
+    const history = turns
+      .slice(-LIMITS.chatHistoryMax)
+      .map((turn) => ({ ...turn, content: turn.content.slice(0, LIMITS.chatReplyMax) }));
     setTurns((previous) => [...previous, { role: "user", content: text }]);
     controller.current = new AbortController();
     try {
@@ -63,8 +66,6 @@ export function AssistantChat({ brief }: AssistantChatProps) {
       <ol
         ref={logRef}
         aria-label="Conversation"
-        aria-live="polite"
-        aria-relevant="additions"
         className="mt-4 max-h-96 space-y-3 overflow-y-auto"
       >
         {turns.map((turn, index) => (
@@ -127,6 +128,13 @@ export function AssistantChat({ brief }: AssistantChatProps) {
           Send
         </button>
       </form>
+      <p className="sr-only" aria-live="polite">
+        {busy
+          ? "Utsav is thinking."
+          : turns.at(-1)?.role === "assistant"
+            ? `Utsav replied: ${turns.at(-1)?.content}`
+            : ""}
+      </p>
     </section>
   );
 }

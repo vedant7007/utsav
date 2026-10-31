@@ -6,7 +6,8 @@ import { Tabs } from "@/components/ui/tabs";
 import type { AiStatus } from "@/lib/client/api";
 import { checklistProgress } from "@/lib/planner/checklist";
 import { EVENT_LABELS } from "@/lib/planner/constants";
-import { formatDate, formatMoney, todayIso } from "@/lib/planner/format";
+import { formatDate, formatMoney, localTodayIso } from "@/lib/planner/format";
+import { daysBetween } from "@/lib/planner/timeline";
 import type { EventPlan } from "@/lib/planner/plan";
 import { AssistantChat } from "./assistant-chat";
 import { BudgetPanel } from "./budget-panel";
@@ -47,7 +48,9 @@ export function PlanWorkspace({
   const [tab, setTab] = useState("overview");
   const { brief, budget, timeline, checklist, ideas } = plan;
   const tasks = checklistProgress(checklist, new Set(progress.done));
-  const today = todayIso();
+  const today = localTodayIso();
+  // Counted at render time so a saved plan never shows a stale countdown.
+  const daysUntil = daysBetween(today, brief.date);
   const nextUp = timeline.milestones.find((milestone) => milestone.date >= today);
   const notice = AI_NOTICES[aiStatus];
   const petals = budget.lines.map((line) => ({
@@ -55,7 +58,14 @@ export function PlanWorkspace({
     label: line.label,
     share: line.share,
   }));
-  const countdown = timeline.daysUntil === 0 ? "Today" : `${timeline.daysUntil} days`;
+  const countdown =
+    daysUntil > 1
+      ? `${daysUntil} days to go`
+      : daysUntil === 1
+        ? "Tomorrow"
+        : daysUntil === 0
+          ? "Today"
+          : "Event has passed";
 
   function toggleTask(taskId: string) {
     const done = progress.done.includes(taskId)
@@ -94,11 +104,7 @@ export function PlanWorkspace({
         </div>
       </div>
       <dl className="grid grid-cols-2 gap-4">
-        <Fact
-          term="Countdown"
-          value={timeline.daysUntil === 0 ? "Today!" : `${timeline.daysUntil} days to go`}
-          tone="bg-blush"
-        />
+        <Fact term="Countdown" value={countdown} tone="bg-blush" />
         <Fact term="Budget" value={formatMoney(budget.total, budget.currency)} tone="bg-sun" />
         <Fact
           term="Vendor tasks"
@@ -135,7 +141,7 @@ export function PlanWorkspace({
               </Detail>
               {brief.city && <Detail>{brief.city}</Detail>}
               <Detail>{brief.guests} guests</Detail>
-              <Detail>{countdown} to go</Detail>
+              <Detail>{countdown}</Detail>
             </ul>
             <div className="no-print mt-7 flex flex-wrap gap-3">
               <button type="button" className="btn btn-sun" onClick={onEdit}>

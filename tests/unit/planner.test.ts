@@ -208,3 +208,25 @@ describe("plan extras", () => {
     expect(plan.ideas.runSheet.length).toBeGreaterThan(0);
   });
 });
+
+describe("review fixes", () => {
+  it("uses the readable event label in curated summaries", () => {
+    expect(curatedIdeas(makeBrief({ eventType: "community", city: "Pune" })).summary).toContain(
+      "community event in Pune",
+    );
+  });
+
+  it("adds an accessibility task to the venue when notes mention access needs", () => {
+    const venue = buildChecklist("wedding", 100, "Grandparents need step-free access").find(
+      (group) => group.id === "venue",
+    );
+    expect(venue?.tasks.at(-1)?.text).toMatch(/step-free/);
+  });
+
+  it("gives each plan its own calendar UIDs", () => {
+    const timeline = buildTimeline("birthday", "2026-12-01", 10, TODAY);
+    const a = buildIcs("Plan A", timeline.milestones).match(/UID:(\S+)/)?.[1];
+    const b = buildIcs("Plan B", timeline.milestones).match(/UID:(\S+)/)?.[1];
+    expect(a).not.toBe(b);
+  });
+});

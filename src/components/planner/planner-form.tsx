@@ -212,7 +212,7 @@ export function PlannerForm({
 
       <fieldset className="mt-6">
         <legend className="field-label">Type of event *</legend>
-        <div id="field-eventType" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {EVENT_TYPES.map((type) => (
             <label
               key={type}
@@ -223,6 +223,7 @@ export function PlannerForm({
               }`}
             >
               <input
+                id={type === EVENT_TYPES[0] ? "field-eventType" : undefined}
                 type="radio"
                 name="eventType"
                 value={type}
@@ -376,7 +377,7 @@ export function PlannerForm({
         <p id="priorities-hint" className="field-hint mb-2">
           Priorities get a bigger share of the budget.
         </p>
-        <div id="field-priorities" className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           {PRIORITY_OPTIONS.map((priority) => {
             const checked = form.priorities.includes(priority);
             const disabled = !checked && form.priorities.length >= 3;
@@ -386,6 +387,7 @@ export function PlannerForm({
                 className={`chip ${checked ? "bg-mint" : ""} ${disabled ? "opacity-60" : "cursor-pointer hover:bg-sun"}`}
               >
                 <input
+                  id={priority === PRIORITY_OPTIONS[0] ? "field-priorities" : undefined}
                   type="checkbox"
                   checked={checked}
                   disabled={disabled}

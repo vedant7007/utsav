@@ -8,7 +8,7 @@ interface VendorPanelProps {
   onToggle: (taskId: string) => void;
 }
 
-/** Vendor-by-vendor checklist with progress that is announced to assistive technology. */
+/** Vendor-by-vendor checklist; progress changes are announced through a polite live region. */
 export function VendorPanel({ checklist, done, onToggle }: VendorPanelProps) {
   const doneSet = new Set(done);
   const progress = checklistProgress(checklist, doneSet);
@@ -19,7 +19,7 @@ export function VendorPanel({ checklist, done, onToggle }: VendorPanelProps) {
         <h2 id="vendor-heading" className="display text-3xl">
           Vendor checklist
         </h2>
-        <label htmlFor="vendor-progress" className="mt-2 block font-bold">
+        <label htmlFor="vendor-progress" className="mt-2 block font-bold" aria-live="polite">
           {progress.completed} of {progress.total} tasks done ({progress.percent}%)
         </label>
         <progress
@@ -35,13 +35,13 @@ export function VendorPanel({ checklist, done, onToggle }: VendorPanelProps) {
           const groupDone = group.tasks.filter((task) => doneSet.has(task.id)).length;
           return (
             <fieldset key={group.id} className="sticker p-5">
-              <legend className="sr-only">{group.vendor}</legend>
-              <div className="flex items-baseline justify-between gap-2" aria-hidden="true">
+              <legend className="flex w-full items-baseline justify-between gap-2">
                 <h3 className="text-lg font-extrabold">{group.vendor}</h3>
                 <span className="rounded-full border-2 border-ink bg-sun px-2 text-sm font-bold">
-                  {groupDone}/{group.tasks.length}
+                  {groupDone} of {group.tasks.length}
+                  <span className="sr-only"> done</span>
                 </span>
-              </div>
+              </legend>
               <ul className="mt-2 space-y-1">
                 {group.tasks.map((task) => {
                   const checked = doneSet.has(task.id);

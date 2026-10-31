@@ -5,9 +5,9 @@ import { Hero } from "@/components/landing/hero";
 import { PlanWorkspace, type PlanProgress } from "@/components/plan/plan-workspace";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import { type AiStatus, ApiError, requestPlan } from "@/lib/client/api";
-import { todayIso } from "@/lib/planner/format";
-import type { EventPlan } from "@/lib/planner/plan";
-import { type EventBrief, eventBriefSchema } from "@/lib/planner/schema";
+import { localTodayIso } from "@/lib/planner/format";
+import { buildPlan, type EventPlan } from "@/lib/planner/plan";
+import { aiIdeasSchema, type EventBrief, eventBriefSchema } from "@/lib/planner/schema";
 import { PlannerForm } from "./planner-form";
 
 interface SavedPlan {
@@ -18,10 +18,30 @@ interface SavedPlan {
 const EMPTY_PROGRESS: PlanProgress = { done: [], actuals: {} };
 
 /** Accepts a stored plan only if its brief still validates; otherwise storage is ignored. */
+const AI_STATUSES: readonly AiStatus[] = ["ok", "cached", "offline", "invalid", "error", "local"];
+
+/**
+ * Restores a stored plan without trusting it: the brief and the ideas are re-validated with
+ * the same schemas the server uses, and every number and date is recomputed from the brief
+ * for today. Tampered or outdated storage can therefore never crash the page or show a
+ * stale countdown.
+ */
+export function restoreSaved(value: unknown, today: string = localTodayIso()): SavedPlan | null {
+  const candidate = value as {
+    plan?: { brief?: unknown; ideas?: unknown; ideasSource?: unknown };
+    ai?: unknown;
+  } | null;
+  const brief = eventBriefSchema.safeParse(candidate?.plan?.brief);
+  if (!brief.success) return null;
+  const ideas = aiIdeasSchema.safeParse(candidate?.plan?.ideas);
+  const fromGemini = candidate?.plan?.ideasSource === "gemini" && ideas.success;
+  const plan = buildPlan(brief.data, today, fromGemini ? ideas.data : null);
+  const ai = AI_STATUSES.find((status) => status === candidate?.ai) ?? "offline";
+  return { plan, ai };
+}
+
 function validateSaved(value: unknown): SavedPlan | null {
-  const candidate = value as SavedPlan | null;
-  if (!candidate?.plan?.budget?.lines || !candidate.plan.timeline?.milestones) return null;
-  return eventBriefSchema.safeParse(candidate.plan.brief).success ? candidate : null;
+  return restoreSaved(value);
 }
 
 function validateProgress(value: unknown): PlanProgress | null {
@@ -56,7 +76,7 @@ export function PlannerApp({ today: serverToday }: { today: string }) {
   const [message, setMessage] = useState("");
   const controller = useRef<AbortController | null>(null);
   const focusPlanTitle = useRef(false);
-  const today = hydrated ? todayIso() : serverToday;
+  const today = hydrated ? localTodayIso() : serverToday;
 
   useEffect(() => () => controller.current?.abort(), []);
 

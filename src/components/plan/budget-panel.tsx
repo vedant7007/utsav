@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { Rangoli, RANGOLI_COLORS } from "@/components/brand/rangoli";
 import { type BudgetPlan, buildBudget, summariseSpend } from "@/lib/planner/budget";
 import { formatMoney, formatPercent } from "@/lib/planner/format";
+import { LIMITS } from "@/lib/planner/constants";
 import type { EventBrief } from "@/lib/planner/schema";
 
 interface BudgetPanelProps {
@@ -32,9 +33,15 @@ export function BudgetPanel({ brief, budget, actuals, onActualChange }: BudgetPa
   const view = whatIf
     ? buildBudget(brief.eventType, total, guests, budget.currency, brief.priorities)
     : budget;
-  const summary = summariseSpend(view.lines, actuals);
+  // Spending is always compared with the saved plan, not with a what-if scenario.
+  const summary = summariseSpend(budget.lines, actuals);
   const money = (amount: number) => formatMoney(amount, budget.currency);
-  const step = niceStep(budget.total);
+  // A step that divides the saved total exactly, so the slider starts on a valid position.
+  const friendly = niceStep(budget.total);
+  const step = budget.total % friendly === 0 ? friendly : 1;
+  const budgetMin = Math.max(step, Math.round((budget.total * 0.25) / step) * step);
+  const budgetMax = Math.min(LIMITS.budgetMax, Math.round((budget.total * 2) / step) * step);
+  const guestsMax = Math.min(LIMITS.guestsMax, Math.max(brief.guests * 2, 10));
 
   return (
     <section aria-labelledby="budget-heading" className="space-y-6">
@@ -69,8 +76,8 @@ export function BudgetPanel({ brief, budget, actuals, onActualChange }: BudgetPa
               <input
                 id="whatif-budget"
                 type="range"
-                min={Math.max(step, Math.round((budget.total * 0.25) / step) * step)}
-                max={Math.round((budget.total * 2) / step) * step}
+                min={budgetMin}
+                max={budgetMax}
                 step={step}
                 value={total}
                 onChange={(event) => setTotal(Number(event.target.value))}
@@ -85,8 +92,9 @@ export function BudgetPanel({ brief, budget, actuals, onActualChange }: BudgetPa
                 id="whatif-guests"
                 type="range"
                 min={Math.max(1, Math.round(brief.guests * 0.25))}
-                max={Math.max(brief.guests * 2, 10)}
+                max={guestsMax}
                 step={1}
+                aria-valuetext={`${guests} guests`}
                 value={guests}
                 onChange={(event) => setGuests(Number(event.target.value))}
               />
@@ -193,7 +201,9 @@ export function BudgetPanel({ brief, budget, actuals, onActualChange }: BudgetPa
                     </span>
                   </th>
                   <td className="py-2.5 pr-3 tabular-nums">{formatPercent(line?.share ?? 0)}</td>
-                  <td className="py-2.5 pr-3 text-right tabular-nums">{money(row.planned)}</td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums">
+                    {money(line?.amount ?? row.planned)}
+                  </td>
                   <td className="py-2.5 text-right">
                     <label htmlFor={inputId} className="sr-only">
                       Actual spend on {row.label}
@@ -220,7 +230,7 @@ export function BudgetPanel({ brief, budget, actuals, onActualChange }: BudgetPa
                 Total
               </th>
               <td className="py-2.5 pr-3">100%</td>
-              <td className="py-2.5 pr-3 text-right tabular-nums">{money(summary.plannedTotal)}</td>
+              <td className="py-2.5 pr-3 text-right tabular-nums">{money(view.total)}</td>
               <td className="py-2.5 text-right tabular-nums">{money(summary.actualTotal)}</td>
             </tr>
           </tfoot>
