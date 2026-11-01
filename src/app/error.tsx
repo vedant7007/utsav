@@ -1,6 +1,7 @@
 "use client";
 
-export default function ErrorPage({ reset }: { error: Error; reset: () => void }) {
+import type { JSX } from "react";
+export default function ErrorPage({ reset }: { error: Error; reset: () => void }): JSX.Element {
   return (
     <section
       role="alert"

@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -22,7 +23,9 @@ export const viewport: Viewport = {
  * Pages render per request so Next.js can apply the CSP nonce set by the proxy to its inline
  * scripts; a statically prerendered page could not carry a per-request nonce.
  */
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>): Promise<JSX.Element> {
   await connection();
   return (
     <html lang="en">

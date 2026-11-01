@@ -29,11 +29,20 @@ export function liveAnnouncement(turns: ChatTurn[], busy: boolean): string {
   return last?.role === "assistant" ? `Utsav replied: ${last.content}` : "";
 }
 
+export interface AssistantChat {
+  turns: ChatTurn[];
+  busy: boolean;
+  error: string;
+  /** Text for the polite live region. */
+  announcement: string;
+  send: (message: string) => Promise<void>;
+}
+
 /**
  * Conversation state for the planning assistant, with cancellation on unmount.
  * @param brief - the event the questions are about.
  */
-export function useAssistantChat(brief: EventBrief) {
+export function useAssistantChat(brief: EventBrief): AssistantChat {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");

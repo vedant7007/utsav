@@ -34,7 +34,6 @@ export const eventBriefSchema = z.object({
     .max(LIMITS.guestsMax, `Utsav plans for up to ${LIMITS.guestsMax} guests`),
   budget: z.coerce
     .number()
-    .finite()
     .min(LIMITS.budgetMin, "Enter a budget greater than zero")
     .max(LIMITS.budgetMax, "That budget is above the supported range"),
   currency: z.enum(CURRENCIES).default("INR"),
@@ -164,6 +163,7 @@ export const chatTurnSchema = z.object({
   content: text(LIMITS.chatReplyMax).pipe(z.string().min(1)),
 });
 
+/** Body of POST /api/assistant: the event, a question, and a few recent turns for context. */
 export const assistantRequestSchema = z.object({
   brief: eventBriefSchema,
   message: text(LIMITS.chatMessageMax).pipe(z.string().min(1, "Type a question first")),

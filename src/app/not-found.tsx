@@ -1,6 +1,7 @@
+import type { JSX } from "react";
 import Link from "next/link";
 
-export default function NotFound() {
+export default function NotFound(): JSX.Element {
   return (
     <section
       aria-labelledby="nf-heading"

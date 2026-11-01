@@ -15,6 +15,10 @@ function write(level: Level, event: string, fields: LogFields): void {
 
 /** Minimal structured logger for server code. */
 export const logger = {
-  warn: (event: string, fields: LogFields = {}) => write("warn", event, fields),
-  error: (event: string, fields: LogFields = {}) => write("error", event, fields),
+  warn: (event: string, fields: LogFields = {}): void => {
+    write("warn", event, fields);
+  },
+  error: (event: string, fields: LogFields = {}): void => {
+    write("error", event, fields);
+  },
 };

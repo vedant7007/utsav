@@ -97,8 +97,9 @@ export function toggleTask(progress: PlanProgress, taskId: string): PlanProgress
  * @param amount - amount spent, in whole currency units.
  */
 export function setActual(progress: PlanProgress, lineId: string, amount: number): PlanProgress {
-  const actuals = { ...progress.actuals };
+  const actuals = Object.fromEntries(
+    Object.entries(progress.actuals).filter(([id]) => id !== lineId),
+  );
   if (Number.isFinite(amount) && amount > 0) actuals[lineId] = Math.round(amount);
-  else delete actuals[lineId];
   return { ...progress, actuals };
 }

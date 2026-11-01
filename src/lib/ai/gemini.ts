@@ -105,7 +105,8 @@ let cached: TextModel | null | undefined;
 export function getModel(): TextModel | null {
   if (cached !== undefined) return cached;
   const apiKey = process.env.GEMINI_API_KEY?.trim();
-  const primary = process.env.GEMINI_MODEL?.trim() || DEFAULT_MODEL;
+  const configured = process.env.GEMINI_MODEL?.trim();
+  const primary = configured === undefined || configured === "" ? DEFAULT_MODEL : configured;
   cached = apiKey ? new GeminiModel(apiKey, [...new Set([primary, FALLBACK_MODEL])]) : null;
   return cached;
 }
