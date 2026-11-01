@@ -225,8 +225,8 @@ describe("review fixes", () => {
 
   it("gives each plan its own calendar UIDs", () => {
     const timeline = buildTimeline("birthday", "2026-12-01", 10, TODAY);
-    const a = buildIcs("Plan A", timeline.milestones).match(/UID:(\S+)/)?.[1];
-    const b = buildIcs("Plan B", timeline.milestones).match(/UID:(\S+)/)?.[1];
+    const a = /UID:(\S+)/.exec(buildIcs("Plan A", timeline.milestones))?.[1];
+    const b = /UID:(\S+)/.exec(buildIcs("Plan B", timeline.milestones))?.[1];
     expect(a).not.toBe(b);
   });
 });

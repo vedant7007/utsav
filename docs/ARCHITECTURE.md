@@ -10,8 +10,9 @@ src/
   proxy.ts          per-request nonce Content-Security-Policy
   components/       presentational React components
     planner/        brief form split into pickers, error summary and the app shell
-    plan/           plan workspace: header, overview, budget (what-if, spend table), timeline,
-                    vendors, ideas, assistant
+    plan/           plan workspace: header, overview, budget (what-if, spend table), timeline
+                    (phase cards, run sheet), vendors, ideas (palette, invite), assistant
+                    (chat log, composer)
     ui/             accessible primitives: tabs, form field
   hooks/            client state: usePlanner, useWhatIf, useAssistantChat, usePersistentState
   lib/
@@ -20,7 +21,7 @@ src/
     ai/             Gemini client with model fallback, prompts, LRU cache, ideas and assistant
     http/           request pipeline (origin, content type, size, rate limit) and handlers
     security/       CSP and headers, sliding-window rate limiter, prompt-injection defense
-    client/         typed fetch wrappers that validate every response
+    client/         typed fetch wrappers that validate every response, file download
     errors.ts       safe helpers for unknown thrown values
     logger.ts       structured JSON logs for server events
 ```
@@ -36,6 +37,17 @@ Dependencies point inwards: components use hooks, hooks use `lib/client` and `li
 5. The client rebuilds the plan with `restorePlan`, so even the server's response is re-validated, and stores it in local storage.
 
 If the server or network fails, `requestPlan` runs the same deterministic planner in the browser.
+
+## Quality gates
+
+| Gate                       | Tool                                                                               | Enforced in                   |
+| -------------------------- | ---------------------------------------------------------------------------------- | ----------------------------- |
+| Formatting                 | Prettier, `.editorconfig`                                                          | CI (`format:check`)           |
+| Types                      | TypeScript strict, `noUncheckedIndexedAccess`                                      | CI (`typecheck`)              |
+| Lint                       | typescript-eslint strict type-checked, jsx-a11y strict, size and complexity limits | CI (`lint`)                   |
+| Unit, API, component tests | Vitest, Testing Library, axe-core                                                  | CI, coverage thresholds 90/85 |
+| Browser tests              | Playwright with axe, desktop and mobile                                            | CI (`e2e`)                    |
+| Supply chain               | `npm audit`, CodeQL, Dependabot, exact versions                                    | CI and weekly schedule        |
 
 ## Key decisions
 

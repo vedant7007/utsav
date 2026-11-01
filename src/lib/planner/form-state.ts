@@ -94,7 +94,7 @@ export function validateForm(form: FormState, today: string): FormResult {
  * Lists errors in on-screen field order.
  * @param errors - messages keyed by field.
  */
-export function orderedErrors(errors: Record<string, string>): Array<[string, string]> {
+export function orderedErrors(errors: Record<string, string>): [string, string][] {
   return FIELD_ORDER.flatMap((key) => {
     const message = errors[key];
     return message ? [[key, message] satisfies [string, string]] : [];

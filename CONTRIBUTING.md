@@ -28,7 +28,8 @@ CI runs the same steps, plus a dependency audit and CodeQL.
 - **Limits are constants.** Lengths, counts and ranges come from `LIMITS`, `IDEA_LIMITS` and `WHAT_IF_RANGE` in `constants.ts`, shared by the client, server and schema.
 - **Accessibility is a requirement.** Every new component gets a test with an axe check, real labels, and keyboard support. ESLint runs the strict `jsx-a11y` rule set.
 - **Tests.** Add or update tests with every change. Coverage thresholds are enforced (90% lines, functions and statements, 85% branches).
-- **Style.** Prettier formats, ESLint enforces complexity, file length and nesting limits. Public functions have JSDoc.
+- **Style.** Prettier formats. Type-aware ESLint enforces explicit return types on exports, no unsafe `any`, and limits on complexity, function length (70 lines, 15 statements) and file length (300 lines). Public functions have JSDoc.
+- **Dependencies.** Versions are pinned exactly (`.npmrc` sets `save-exact`). Dependabot proposes updates weekly.
 
 ## Reporting security issues
 

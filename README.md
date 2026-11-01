@@ -43,13 +43,13 @@ src/
   components/plan/     plan header and overview, budget (what-if, spend table), timeline,
                        vendors, ideas, assistant
   components/ui/       accessible tabs and form field
+  lib/client/          typed API client and file download helper
   hooks/               usePlanner, useWhatIf, useAssistantChat, validated localStorage state
   lib/planner/         budget, timeline, checklist, ICS, schemas, form state, restore (pure)
   lib/ai/              Gemini client with fallback, prompts, LRU cache, ideas, assistant
-  lib/client/          typed fetch wrappers that validate every response
   lib/http/            request pipeline and injectable handlers
   lib/security/        CSP and headers, rate limiter, prompt-injection defense
-tests/                 unit, API and component suites (171 tests)
+tests/                 unit, API and component suites (185 tests)
 e2e/                   Playwright browser tests with axe, desktop and mobile
 docs/                  ARCHITECTURE.md and decision records (docs/adr)
 ```
@@ -59,7 +59,8 @@ docs/                  ARCHITECTURE.md and decision records (docs/adr)
 ### Code quality
 
 - TypeScript in strict mode with `noUncheckedIndexedAccess`. No `any`, and no type assertions on external data: API responses and local storage are parsed with Zod.
-- ESLint with Next.js, TypeScript and the full strict `jsx-a11y` rule set, plus limits on complexity (12), nesting depth, parameters and file length (300 lines). Prettier and `.editorconfig`, checked in CI.
+- Type-aware ESLint (`typescript-eslint` strict and stylistic type-checked presets: no unsafe `any` flows, no floating promises, exhaustive switches, explicit return types on every export), the full strict `jsx-a11y` rule set, and size limits: complexity 12, 70 lines and 15 statements per function, 300 lines per file. Prettier and `.editorconfig`, checked in CI.
+- Exact dependency versions (`save-exact`), a committed lockfile and Node 22 pinned in `.nvmrc`.
 - Small, single-purpose modules: state in hooks (`usePlanner`, `useWhatIf`, `useAssistantChat`), presentational components, and pure domain logic with no I/O. Route handlers are factories with injected dependencies (model, clock, limiter), so they are fully testable.
 - One schema (`eventBriefSchema`) validates input on both the client and the server. Every limit is a named constant shared by the form, schema and prompts.
 - Structured JSON logging for AI fallbacks, JSDoc on public functions, and [architecture notes with decision records](docs/ARCHITECTURE.md). See [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -85,7 +86,7 @@ See [SECURITY.md](SECURITY.md) for the threat model.
 
 ### Testing
 
-- **171 unit, API and component tests:** 98.6% line and 93% branch coverage (`npm run test:coverage`, thresholds enforced at 90% and 85%).
+- **185 unit, API and component tests:** 98.7% line and 92.8% branch coverage (`npm run test:coverage`, thresholds enforced at 90% and 85%).
 - **Unit tests:** the proxy CSP, the typed API client (fallbacks, validation, cancellation), restore and progress helpers, form state, error helpers and the logger, plus budget maths (exact sums, priorities, thresholds), timeline compression and leap years, ICS escaping and folding, schemas, cache, rate limiter, prompt defense, and the Gemini client with its fallback chain (SDK mocked).
 - **API tests:** validation, 400/403/413/415/422/429 paths, offline and AI modes.
 - **Component tests:** restoring tampered or stale saved plans, countdown wording, the what-if simulator, keyboard tab navigation, error summary focus, spend tracker, checklist, calendar export, persistence, network fallback, and chat. Each runs **axe-core** checks.
