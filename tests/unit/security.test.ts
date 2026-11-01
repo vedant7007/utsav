@@ -74,8 +74,11 @@ describe("security headers", () => {
         "X-Frame-Options",
         "X-Content-Type-Options",
         "Strict-Transport-Security",
+        "Cross-Origin-Opener-Policy",
+        "Cross-Origin-Resource-Policy",
       ]),
     );
+    expect(buildContentSecurityPolicy("abc", false)).toContain("frame-src 'none'");
   });
 });
 

@@ -25,6 +25,8 @@ jobs:
       - run: npm ci
       - name: Dependency audit
         run: npm audit --omit=dev --audit-level=high
+      - name: Format check
+        run: npm run format:check
       - name: Lint
         run: npm run lint
       - name: Typecheck

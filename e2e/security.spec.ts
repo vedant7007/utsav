@@ -9,6 +9,7 @@ test("pages send a nonce CSP and hardening headers", async ({ request }) => {
   expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
   expect(headers["x-frame-options"]).toBe("DENY");
   expect(headers["x-content-type-options"]).toBe("nosniff");
+  expect(headers["cross-origin-opener-policy"]).toBe("same-origin");
   expect(headers["x-powered-by"]).toBeUndefined();
 });
 
