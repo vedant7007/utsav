@@ -1,9 +1,11 @@
 import {
   type Currency,
   type EventType,
+  LIMITS,
   MIN_PER_GUEST,
   PRIORITY_BOOST,
   type Priority,
+  WHAT_IF_RANGE,
 } from "./constants";
 
 /** A budget line in the plan. `share` is a fraction of the total (0..1). */
@@ -226,5 +228,44 @@ export function summariseSpend(lines: BudgetLine[], actuals: Record<string, numb
     actualTotal,
     remaining: plannedTotal - actualTotal,
     overCount: rows.filter((row) => row.over).length,
+  };
+}
+
+/** Slider bounds for the what-if simulator. */
+export interface WhatIfRanges {
+  step: number;
+  budgetMin: number;
+  budgetMax: number;
+  guestsMin: number;
+  guestsMax: number;
+}
+
+/** Rounds a slider value to a friendly step so amounts read cleanly. */
+function niceStep(total: number): number {
+  const magnitude = 10 ** Math.max(Math.floor(Math.log10(Math.max(total, 1))) - 2, 0);
+  return Math.max(magnitude, 1);
+}
+
+/**
+ * Computes what-if slider bounds around the saved plan. The budget step always divides the
+ * saved total exactly, so the slider starts on a valid position.
+ * @param total - saved budget total.
+ * @param guests - saved guest count.
+ */
+export function whatIfRanges(total: number, guests: number): WhatIfRanges {
+  const friendly = niceStep(total);
+  const step = total % friendly === 0 ? friendly : 1;
+  return {
+    step,
+    budgetMin: Math.max(step, Math.round((total * WHAT_IF_RANGE.minFactor) / step) * step),
+    budgetMax: Math.min(
+      LIMITS.budgetMax,
+      Math.round((total * WHAT_IF_RANGE.maxFactor) / step) * step,
+    ),
+    guestsMin: Math.max(1, Math.round(guests * WHAT_IF_RANGE.minFactor)),
+    guestsMax: Math.min(
+      LIMITS.guestsMax,
+      Math.max(guests * WHAT_IF_RANGE.maxFactor, WHAT_IF_RANGE.minGuestsMax),
+    ),
   };
 }

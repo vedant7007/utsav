@@ -43,12 +43,29 @@ export const LIMITS = {
   guestsMax: 5000,
   budgetMin: 1,
   budgetMax: 1_000_000_000,
+  prioritiesMax: 3,
   maxPlanningDays: 730,
   chatMessageMax: 600,
   /** Longest assistant reply kept; must fit inside a history turn. */
   chatReplyMax: 1_100,
   chatHistoryMax: 6,
 } as const;
+
+/** Maximum list sizes accepted from the model, shared by the schema and the parser. */
+export const IDEA_LIMITS = {
+  decor: 6,
+  food: 6,
+  activities: 6,
+  savingTips: 5,
+  extraTasks: 4,
+  paletteMin: 3,
+  paletteMax: 5,
+  runSheetMin: 3,
+  runSheetMax: 8,
+} as const;
+
+/** The what-if simulator lets hosts explore from a quarter of to double their saved plan. */
+export const WHAT_IF_RANGE = { minFactor: 0.25, maxFactor: 2, minGuestsMax: 10 } as const;
 
 /** Share of the budget moved towards priorities, taken from non-priority categories. */
 export const PRIORITY_BOOST = 0.3;

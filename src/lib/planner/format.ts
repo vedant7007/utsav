@@ -60,3 +60,14 @@ export function localTodayIso(now: Date = new Date()): string {
 export function todayIso(timeZone = "Asia/Kolkata", now: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone }).format(now);
 }
+
+/**
+ * Friendly countdown wording for a number of days until the event.
+ * @param daysUntil - whole days from today to the event (negative once it has passed).
+ */
+export function countdownLabel(daysUntil: number): string {
+  if (daysUntil > 1) return `${daysUntil} days to go`;
+  if (daysUntil === 1) return "Tomorrow";
+  if (daysUntil === 0) return "Today";
+  return "Event has passed";
+}

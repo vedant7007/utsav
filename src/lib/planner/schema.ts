@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CURRENCIES, EVENT_TYPES, LIMITS, PRIORITY_OPTIONS } from "./constants";
+import { CURRENCIES, EVENT_TYPES, IDEA_LIMITS, LIMITS, PRIORITY_OPTIONS } from "./constants";
 
 /** Strips control characters and collapses whitespace in free text from users. */
 export function cleanText(value: string): string {
@@ -41,7 +41,7 @@ export const eventBriefSchema = z.object({
   theme: text(LIMITS.themeMax).default(""),
   priorities: z
     .array(z.enum(PRIORITY_OPTIONS))
-    .max(3, "Pick up to three priorities")
+    .max(LIMITS.prioritiesMax, "Pick up to three priorities")
     .default([])
     .transform((list) => [...new Set(list)]),
   notes: text(LIMITS.notesMax).default(""),
@@ -54,10 +54,10 @@ export type EventBriefInput = z.input<typeof eventBriefSchema>;
 export const aiIdeasSchema = z.object({
   summary: z.string().min(1).max(400),
   themeConcept: z.string().min(1).max(300),
-  decor: z.array(z.string().min(1).max(160)).min(1).max(6),
-  food: z.array(z.string().min(1).max(160)).min(1).max(6),
-  activities: z.array(z.string().min(1).max(160)).min(1).max(6),
-  savingTips: z.array(z.string().min(1).max(200)).min(1).max(5),
+  decor: z.array(z.string().min(1).max(160)).min(1).max(IDEA_LIMITS.decor),
+  food: z.array(z.string().min(1).max(160)).min(1).max(IDEA_LIMITS.food),
+  activities: z.array(z.string().min(1).max(160)).min(1).max(IDEA_LIMITS.activities),
+  savingTips: z.array(z.string().min(1).max(200)).min(1).max(IDEA_LIMITS.savingTips),
   extraTasks: z
     .array(
       z.object({
@@ -65,7 +65,7 @@ export const aiIdeasSchema = z.object({
         daysBefore: z.number().int().min(0).max(LIMITS.maxPlanningDays),
       }),
     )
-    .max(4)
+    .max(IDEA_LIMITS.extraTasks)
     .default([]),
   palette: z
     .array(
@@ -74,8 +74,8 @@ export const aiIdeasSchema = z.object({
         hex: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a #RRGGBB colour"),
       }),
     )
-    .min(3)
-    .max(5)
+    .min(IDEA_LIMITS.paletteMin)
+    .max(IDEA_LIMITS.paletteMax)
     .optional(),
   runSheet: z
     .array(
@@ -84,8 +84,8 @@ export const aiIdeasSchema = z.object({
         activity: z.string().min(1).max(120),
       }),
     )
-    .min(3)
-    .max(8)
+    .min(IDEA_LIMITS.runSheetMin)
+    .max(IDEA_LIMITS.runSheetMax)
     .optional(),
   inviteMessage: z.string().min(20).max(600).optional(),
 });

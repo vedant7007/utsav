@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import { PlanWorkspace } from "@/components/plan/plan-workspace";
-import { restoreSaved } from "@/components/planner/planner-app";
+import { restorePlan as restoreSaved } from "@/lib/planner/restore";
 import { localTodayIso } from "@/lib/planner/format";
 import { buildPlan } from "@/lib/planner/plan";
 import { addDays } from "@/lib/planner/timeline";
@@ -36,8 +36,8 @@ describe("restoreSaved", () => {
   });
 
   it("rejects storage without a valid brief", () => {
-    expect(restoreSaved({ plan: { brief: { title: "" } } })).toBeNull();
-    expect(restoreSaved(null)).toBeNull();
+    expect(restoreSaved({ plan: { brief: { title: "" } } }, TODAY)).toBeNull();
+    expect(restoreSaved(null, TODAY)).toBeNull();
   });
 });
 

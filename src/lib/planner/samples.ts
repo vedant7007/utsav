@@ -1,10 +1,18 @@
 import type { EventBriefInput } from "./schema";
 import { addDays } from "./timeline";
 
-/** Ready-made briefs so a first-time visitor can see a full plan in one click. */
-export function sampleBriefs(
-  today: string,
-): { id: string; label: string; brief: EventBriefInput }[] {
+/** A ready-made brief offered as a one-click sample. */
+export interface SampleBrief {
+  id: string;
+  label: string;
+  brief: EventBriefInput;
+}
+
+/**
+ * Ready-made briefs so a first-time visitor can see a full plan in one click.
+ * @param today - today's date, YYYY-MM-DD; sample dates are relative to it.
+ */
+export function sampleBriefs(today: string): SampleBrief[] {
   return [
     {
       id: "wedding",
