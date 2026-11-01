@@ -71,3 +71,16 @@ export function countdownLabel(daysUntil: number): string {
   if (daysUntil === 0) return "Today";
   return "Event has passed";
 }
+
+/**
+ * Turns a title into a safe, lowercase file name stem.
+ * @param title - free text, for example an event name.
+ * @param fallback - used when nothing printable remains.
+ */
+export function slugify(title: string, fallback = "utsav"): string {
+  const slug = title
+    .replace(/[^\w-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+  return slug === "" ? fallback : slug;
+}

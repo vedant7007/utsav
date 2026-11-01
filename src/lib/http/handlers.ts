@@ -12,7 +12,7 @@ import {
   planRateLimiter,
   type SlidingWindowRateLimiter,
 } from "@/lib/security/rate-limit";
-import { errorResponse, okResponse, parseJsonRequest } from "./api";
+import { errorResponse, HTTP_STATUS, okResponse, parseJsonRequest } from "./api";
 
 /** Dependencies are injected so route logic is testable without network calls. */
 export interface HandlerDeps {
@@ -35,9 +35,14 @@ export function createPlanHandler({
     // One day of tolerance: a host west of India may still be on the previous calendar day.
     const dateError = validateEventDate(brief.date, addDays(now, -1));
     if (dateError) {
-      return errorResponse(422, "validation_failed", "Some details need fixing.", {
-        fields: { date: dateError },
-      });
+      return errorResponse(
+        HTTP_STATUS.unprocessable,
+        "validation_failed",
+        "Some details need fixing.",
+        {
+          fields: { date: dateError },
+        },
+      );
     }
     const outcome = await generateIdeas(model(), brief);
     const plan = buildPlan(brief, now, outcome.ideas);

@@ -13,26 +13,26 @@ export function escapeIcsText(value: string): string {
     .replace(/\r?\n/g, "\\n");
 }
 
+/** Maximum octets per content line in RFC 5545. */
+const ICS_LINE_OCTETS = 75;
+
 /**
  * Folds a content line at 75 octets as RFC 5545 requires, continuing with a leading space.
  * @param line - one unfolded content line.
  */
 export function foldIcsLine(line: string): string {
-  const bytes = new TextEncoder().encode(line);
-  if (bytes.length <= 75) return line;
+  const encoder = new TextEncoder();
+  if (encoder.encode(line).length <= ICS_LINE_OCTETS) return line;
   const parts: string[] = [];
   let current = "";
-  let size = 0;
   for (const char of line) {
-    const charSize = new TextEncoder().encode(char).length;
-    const limit = parts.length === 0 ? 75 : 74;
-    if (size + charSize > limit) {
+    // Continuation lines start with a space, which counts towards their 75 octets.
+    const limit = parts.length === 0 ? ICS_LINE_OCTETS : ICS_LINE_OCTETS - 1;
+    if (encoder.encode(current + char).length > limit) {
       parts.push(current);
       current = "";
-      size = 0;
     }
     current += char;
-    size += charSize;
   }
   parts.push(current);
   return parts.join("\r\n ");

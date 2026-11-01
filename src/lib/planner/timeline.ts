@@ -1,6 +1,8 @@
 import { type EventType, LARGE_EVENT_GUESTS } from "./constants";
 
 const MS_PER_DAY = 86_400_000;
+/** Days of catch-up runway given to each overdue task when an event is close. */
+const CATCH_UP_DAYS_PER_TASK = 3;
 
 export type MilestonePhase = "early" | "build-up" | "final-week" | "event-day" | "after";
 
@@ -177,48 +179,78 @@ export function buildTimeline(
   extraTasks: ExtraTask[] = [],
 ): TimelinePlan {
   const daysUntil = daysBetween(today, eventDate);
-  const templates = TIMELINE_TEMPLATES[eventType].filter(
-    (template) => template.minGuests === undefined || guests > template.minGuests,
-  );
-  const tasks = [
-    ...templates.map((template) => ({ ...template, source: "template" as const })),
-    ...extraTasks.map((task, index) => ({
-      id: `ai-${index + 1}`,
-      title: task.title,
-      daysBefore: task.daysBefore,
-      source: "ai" as const,
-    })),
-  ].sort((a, b) => b.daysBefore - a.daysBefore);
-
-  const available = Math.max(daysUntil, 0);
-  const isOverdue = (daysBefore: number) => daysBefore > available && daysBefore > 0;
-  const overdue = tasks.filter((task) => isOverdue(task.daysBefore));
-  // Overdue tasks are spread across a catch-up window at the start of the runway (about three
-  // days per task, never past the event), keeping their original order.
-  const window = Math.min(available, Math.max(overdue.length * 3, 1));
-  const step = overdue.length > 1 ? window / (overdue.length - 1) : 0;
-  let overdueIndex = 0;
+  const tasks = collectTasks(eventType, guests, extraTasks);
+  const leads = scheduleLeads(tasks, Math.max(daysUntil, 0));
 
   const milestones = tasks
-    .map((task): Milestone => {
-      const rushed = isOverdue(task.daysBefore);
-      let lead = task.daysBefore;
-      if (rushed) {
-        lead = Math.max(Math.round(available - step * overdueIndex), 0);
-        overdueIndex += 1;
-      }
+    .map((task, index): Milestone => {
+      const lead = leads[index] ?? { days: task.daysBefore, rushed: false };
       return {
         id: task.id,
         title: task.title,
         daysBefore: task.daysBefore,
-        date: addDays(eventDate, -lead),
-        phase: phaseFor(lead),
-        rushed,
+        date: addDays(eventDate, -lead.days),
+        phase: phaseFor(lead.days),
+        rushed: lead.rushed,
         source: task.source,
       };
     })
     // Chronological order; the sort is stable, so same-day tasks keep their template order.
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  return { milestones, daysUntil, compressed: overdue.length > 0 };
+  return { milestones, daysUntil, compressed: milestones.some((milestone) => milestone.rushed) };
+}
+
+interface PlannedTask {
+  id: string;
+  title: string;
+  daysBefore: number;
+  source: "template" | "ai";
+}
+
+/** Template tasks for this event size plus AI extras, earliest lead time first. */
+function collectTasks(
+  eventType: EventType,
+  guests: number,
+  extraTasks: ExtraTask[],
+): PlannedTask[] {
+  const templates = TIMELINE_TEMPLATES[eventType].filter(
+    (template) => template.minGuests === undefined || guests > template.minGuests,
+  );
+  return [
+    ...templates.map((template): PlannedTask => ({ ...template, source: "template" })),
+    ...extraTasks.map((task, index): PlannedTask => ({
+      id: `ai-${index + 1}`,
+      title: task.title,
+      daysBefore: task.daysBefore,
+      source: "ai",
+    })),
+  ].sort((a, b) => b.daysBefore - a.daysBefore);
+}
+
+interface Lead {
+  days: number;
+  rushed: boolean;
+}
+
+/**
+ * Gives each task its actual lead time, in the same order as `tasks`. Tasks whose ideal lead
+ * time has already passed are spread across a catch-up window at the start of the runway
+ * (about {@link CATCH_UP_DAYS_PER_TASK} days per task, never past the event), keeping their
+ * order.
+ * @param tasks - tasks sorted by lead time, earliest first.
+ * @param available - days left until the event, never negative.
+ */
+export function scheduleLeads(tasks: readonly { daysBefore: number }[], available: number): Lead[] {
+  const isOverdue = (daysBefore: number): boolean => daysBefore > available && daysBefore > 0;
+  const overdueCount = tasks.filter((task) => isOverdue(task.daysBefore)).length;
+  const window = Math.min(available, Math.max(overdueCount * CATCH_UP_DAYS_PER_TASK, 1));
+  const step = overdueCount > 1 ? window / (overdueCount - 1) : 0;
+  let overdueIndex = 0;
+  return tasks.map(({ daysBefore }) => {
+    if (!isOverdue(daysBefore)) return { days: daysBefore, rushed: false };
+    const days = Math.max(Math.round(available - step * overdueIndex), 0);
+    overdueIndex += 1;
+    return { days, rushed: true };
+  });
 }

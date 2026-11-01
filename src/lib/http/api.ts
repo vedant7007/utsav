@@ -26,6 +26,7 @@ export function errorResponse(
   );
 }
 
+/** JSON success response that is never cached. */
 export function okResponse(body: unknown): NextResponse {
   return NextResponse.json(body, { headers: NO_STORE });
 }
@@ -44,67 +45,90 @@ export function isAllowedOrigin(request: Request): boolean {
   }
 }
 
+/** HTTP status codes used by the API, named for readability. */
+export const HTTP_STATUS = {
+  badRequest: 400,
+  forbidden: 403,
+  payloadTooLarge: 413,
+  unsupportedMediaType: 415,
+  unprocessable: 422,
+  tooManyRequests: 429,
+} as const;
+
 type Parsed<T> = { ok: true; data: T } | { ok: false; response: NextResponse };
+
+const fail = (response: NextResponse): { ok: false; response: NextResponse } => ({
+  ok: false,
+  response,
+});
+
+const tooLarge = (): NextResponse =>
+  errorResponse(HTTP_STATUS.payloadTooLarge, "payload_too_large", "Request body is too large.");
+
+/**
+ * Cheap checks that need only the headers: origin, rate limit, content type and declared size.
+ * @returns an error response, or null when the request may proceed.
+ */
+function checkHeaders(request: Request, limiter: SlidingWindowRateLimiter): NextResponse | null {
+  if (!isAllowedOrigin(request)) {
+    return errorResponse(
+      HTTP_STATUS.forbidden,
+      "forbidden_origin",
+      "Cross-site requests are not allowed.",
+    );
+  }
+  const decision = limiter.check(clientKey(request.headers));
+  if (!decision.allowed) {
+    const seconds = decision.retryAfterSeconds;
+    return errorResponse(
+      HTTP_STATUS.tooManyRequests,
+      "rate_limited",
+      `Too many requests. Try again in ${seconds} seconds.`,
+      {},
+      { "Retry-After": String(seconds) },
+    );
+  }
+  if (!request.headers.get("content-type")?.includes("application/json")) {
+    return errorResponse(HTTP_STATUS.unsupportedMediaType, "unsupported_media_type", "Send JSON.");
+  }
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  return declared > MAX_BODY_BYTES ? tooLarge() : null;
+}
+
+/** Reads the body, enforcing the real byte size (the header can lie), and parses JSON. */
+async function readJson(request: Request): Promise<Parsed<unknown>> {
+  const text = await request.text();
+  if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) return fail(tooLarge());
+  try {
+    return { ok: true, data: JSON.parse(text) as unknown };
+  } catch {
+    return fail(errorResponse(HTTP_STATUS.badRequest, "invalid_json", "Body is not valid JSON."));
+  }
+}
 
 /**
  * Runs the shared request checks in order: origin, rate limit, content type, size, JSON
  * syntax and schema validation.
+ * @param request - incoming request.
+ * @param schema - Zod schema for the body.
+ * @param limiter - per-client rate limiter for this route.
  */
 export async function parseJsonRequest<S extends z.ZodType>(
   request: Request,
   schema: S,
   limiter: SlidingWindowRateLimiter,
 ): Promise<Parsed<z.output<S>>> {
-  if (!isAllowedOrigin(request)) {
-    return {
-      ok: false,
-      response: errorResponse(403, "forbidden_origin", "Cross-site requests are not allowed."),
-    };
-  }
-  const decision = limiter.check(clientKey(request.headers));
-  if (!decision.allowed) {
-    return {
-      ok: false,
-      response: errorResponse(
-        429,
-        "rate_limited",
-        `Too many requests. Try again in ${decision.retryAfterSeconds} seconds.`,
-        {},
-        { "Retry-After": String(decision.retryAfterSeconds) },
-      ),
-    };
-  }
-  if (!request.headers.get("content-type")?.includes("application/json")) {
-    return { ok: false, response: errorResponse(415, "unsupported_media_type", "Send JSON.") };
-  }
-  const declared = Number(request.headers.get("content-length") ?? 0);
-  if (declared > MAX_BODY_BYTES) {
-    return {
-      ok: false,
-      response: errorResponse(413, "payload_too_large", "Request body is too large."),
-    };
-  }
-  const text = await request.text();
-  if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
-    return {
-      ok: false,
-      response: errorResponse(413, "payload_too_large", "Request body is too large."),
-    };
-  }
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    return { ok: false, response: errorResponse(400, "invalid_json", "Body is not valid JSON.") };
-  }
-  const result = schema.safeParse(json);
+  const rejected = checkHeaders(request, limiter);
+  if (rejected) return fail(rejected);
+  const body = await readJson(request);
+  if (!body.ok) return body;
+  const result = schema.safeParse(body.data);
   if (!result.success) {
-    return {
-      ok: false,
-      response: errorResponse(422, "validation_failed", "Some details need fixing.", {
+    return fail(
+      errorResponse(HTTP_STATUS.unprocessable, "validation_failed", "Some details need fixing.", {
         fields: fieldErrors(result.error),
       }),
-    };
+    );
   }
   return { ok: true, data: result.data };
 }
