@@ -1,6 +1,7 @@
 import "server-only";
 import type { NextResponse } from "next/server";
-import { answerQuestion, generateIdeas } from "@/lib/ai/planner-ai";
+import { answerQuestion } from "@/lib/ai/assistant";
+import { generateIdeas } from "@/lib/ai/ideas";
 import type { TextModel } from "@/lib/ai/gemini";
 import { todayIso } from "@/lib/planner/format";
 import { buildPlan, validateEventDate } from "@/lib/planner/plan";

@@ -1,5 +1,5 @@
 import type { TextModel } from "@/lib/ai/gemini";
-import { clearIdeasCache } from "@/lib/ai/planner-ai";
+import { clearIdeasCache } from "@/lib/ai/ideas";
 import { MAX_BODY_BYTES } from "@/lib/http/api";
 import { createAssistantHandler, createPlanHandler } from "@/lib/http/handlers";
 import { curatedIdeas } from "@/lib/planner/ideas";

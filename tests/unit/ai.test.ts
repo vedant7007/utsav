@@ -6,14 +6,8 @@ import {
   type GenerateOptions,
   type TextModel,
 } from "@/lib/ai/gemini";
-import {
-  answerQuestion,
-  clearIdeasCache,
-  generateIdeas,
-  offlineReply,
-  parseIdeas,
-  stripJsonFence,
-} from "@/lib/ai/planner-ai";
+import { answerQuestion, offlineReply } from "@/lib/ai/assistant";
+import { clearIdeasCache, generateIdeas, parseIdeas, stripJsonFence } from "@/lib/ai/ideas";
 import { assistantPrompt, describeBrief, IDEAS_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { curatedIdeas } from "@/lib/planner/ideas";
 import { makeBrief } from "../fixtures";
@@ -218,7 +212,8 @@ describe("gemini configuration", () => {
   it("retries only on overload, quota and timeouts", () => {
     expect(isRetryable({ status: 429 })).toBe(true);
     expect(isRetryable({ status: 503 })).toBe(true);
-    expect(isRetryable({ name: "TimeoutError" })).toBe(true);
+    expect(isRetryable(new DOMException("timed out", "TimeoutError"))).toBe(true);
+    expect(isRetryable({ name: "TimeoutError" })).toBe(false);
     expect(isRetryable({ status: 404 })).toBe(true);
     expect(isRetryable({ status: 400 })).toBe(false);
     expect(isRetryable(null)).toBe(false);

@@ -1,4 +1,5 @@
 import "server-only";
+import { errorStatus, isTimeoutOrAbort } from "@/lib/errors";
 import { GoogleGenAI, type ThinkingConfig, ThinkingLevel } from "@google/genai";
 
 /** Lowest-cost current Gemini model; planning ideas do not need a larger one. */
@@ -8,6 +9,8 @@ export const FALLBACK_MODEL = "gemini-flash-lite-latest";
 /** Hard ceilings that cap spend per request. */
 export const MAX_OUTPUT_TOKENS = { ideas: 1_800, chat: 400 } as const;
 export const REQUEST_TIMEOUT_MS = 15_000;
+/** Sampling temperatures: ideas benefit from variety, chat answers from consistency. */
+export const TEMPERATURE = { ideas: 0.7, chat: 0.6 } as const;
 
 export interface GenerateOptions {
   system: string;
@@ -29,11 +32,9 @@ export interface TextModel {
  * 404 from a model that Google has retired.
  */
 export function isRetryable(error: unknown): boolean {
-  const status = (error as { status?: number } | null)?.status;
-  if (status === 404 || status === 429 || (typeof status === "number" && status >= 500))
-    return true;
-  const name = (error as { name?: string } | null)?.name;
-  return name === "TimeoutError" || name === "AbortError";
+  const status = errorStatus(error);
+  if (status === 404 || status === 429 || (status !== undefined && status >= 500)) return true;
+  return isTimeoutOrAbort(error);
 }
 
 /**
@@ -64,7 +65,7 @@ export class GeminiModel implements TextModel {
     prompt,
     maxOutputTokens,
     jsonSchema,
-    temperature = 0.7,
+    temperature = TEMPERATURE.ideas,
   }: GenerateOptions): Promise<string> {
     let lastError: unknown = new Error("No Gemini model configured");
     for (const model of this.models) {
