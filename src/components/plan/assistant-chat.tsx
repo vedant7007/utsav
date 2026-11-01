@@ -1,9 +1,9 @@
 "use client";
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { askAssistant } from "@/lib/client/api";
+import { useAssistantChat } from "@/hooks/use-assistant-chat";
 import { LIMITS } from "@/lib/planner/constants";
-import type { ChatTurn, EventBrief } from "@/lib/planner/schema";
+import type { EventBrief } from "@/lib/planner/schema";
 
 const SUGGESTIONS = [
   "How can I cut 15% from this budget?",
@@ -17,43 +17,22 @@ interface AssistantChatProps {
 
 /** Conversational planning help. New replies are announced through a polite live region. */
 export function AssistantChat({ brief }: AssistantChatProps) {
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const { turns, busy, error, send, announcement } = useAssistantChat(brief);
   const [draft, setDraft] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const logRef = useRef<HTMLOListElement>(null);
-  const controller = useRef<AbortController | null>(null);
 
-  useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => {
     logRef.current?.lastElementChild?.scrollIntoView({ block: "nearest" });
   }, [turns]);
 
-  async function send(message: string) {
-    const text = message.trim();
-    if (!text || busy) return;
-    setError("");
-    setBusy(true);
+  function ask(message: string) {
     setDraft("");
-    // Send only recent turns, each within the server's history limit.
-    const history = turns
-      .slice(-LIMITS.chatHistoryMax)
-      .map((turn) => ({ ...turn, content: turn.content.slice(0, LIMITS.chatReplyMax) }));
-    setTurns((previous) => [...previous, { role: "user", content: text }]);
-    controller.current = new AbortController();
-    try {
-      const { reply } = await askAssistant(brief, history, text, controller.current.signal);
-      setTurns((previous) => [...previous, { role: "assistant", content: reply }]);
-    } catch (caught) {
-      if ((caught as Error).name !== "AbortError") setError((caught as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    void send(message);
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void send(draft);
+    ask(draft);
   }
 
   return (
@@ -66,6 +45,7 @@ export function AssistantChat({ brief }: AssistantChatProps) {
       <ol
         ref={logRef}
         aria-label="Conversation"
+        aria-busy={busy}
         className="mt-4 max-h-96 space-y-3 overflow-y-auto"
       >
         {turns.map((turn, index) => (
@@ -96,7 +76,7 @@ export function AssistantChat({ brief }: AssistantChatProps) {
             <button
               key={suggestion}
               type="button"
-              onClick={() => void send(suggestion)}
+              onClick={() => ask(suggestion)}
               className="chip hover:bg-sun"
             >
               {suggestion}
@@ -129,11 +109,7 @@ export function AssistantChat({ brief }: AssistantChatProps) {
         </button>
       </form>
       <p className="sr-only" aria-live="polite">
-        {busy
-          ? "Utsav is thinking."
-          : turns.at(-1)?.role === "assistant"
-            ? `Utsav replied: ${turns.at(-1)?.content}`
-            : ""}
+        {announcement}
       </p>
     </section>
   );

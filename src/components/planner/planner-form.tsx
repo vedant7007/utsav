@@ -1,85 +1,22 @@
 "use client";
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { Field } from "@/components/ui/field";
+import { CURRENCIES, LIMITS } from "@/lib/planner/constants";
 import {
-  CURRENCIES,
-  EVENT_LABELS,
-  EVENT_TYPES,
-  LIMITS,
-  PRIORITY_LABELS,
-  PRIORITY_OPTIONS,
-  type Priority,
-} from "@/lib/planner/constants";
-import type { EventType } from "@/lib/planner/constants";
-import { validateEventDate } from "@/lib/planner/plan";
+  EMPTY_FORM,
+  type FormState,
+  orderedErrors,
+  toFormState,
+  togglePriority,
+  validateForm,
+} from "@/lib/planner/form-state";
 import { sampleBriefs } from "@/lib/planner/samples";
-import {
-  type EventBrief,
-  type EventBriefInput,
-  eventBriefSchema,
-  fieldErrors,
-} from "@/lib/planner/schema";
-
-interface FormState {
-  eventType: string;
-  title: string;
-  date: string;
-  city: string;
-  guests: string;
-  budget: string;
-  currency: string;
-  theme: string;
-  priorities: Priority[];
-  notes: string;
-}
-
-const EMPTY: FormState = {
-  eventType: "wedding",
-  title: "",
-  date: "",
-  city: "",
-  guests: "",
-  budget: "",
-  currency: "INR",
-  theme: "",
-  priorities: [],
-  notes: "",
-};
-
-const EVENT_ICONS: Record<EventType, string> = {
-  wedding: "💍",
-  birthday: "🎂",
-  anniversary: "💞",
-  community: "🪔",
-};
-
-const FIELD_ORDER = [
-  "eventType",
-  "title",
-  "date",
-  "guests",
-  "budget",
-  "currency",
-  "city",
-  "theme",
-  "priorities",
-  "notes",
-];
-
-function toFormState(brief: EventBriefInput): FormState {
-  return {
-    eventType: brief.eventType,
-    title: brief.title,
-    date: brief.date,
-    city: brief.city ?? "",
-    guests: String(brief.guests),
-    budget: String(brief.budget),
-    currency: brief.currency ?? "INR",
-    theme: brief.theme ?? "",
-    priorities: [...(brief.priorities ?? [])],
-    notes: brief.notes ?? "",
-  };
-}
+import type { EventBrief, EventBriefInput } from "@/lib/planner/schema";
+import { ErrorSummary } from "./error-summary";
+import { EventTypePicker } from "./event-type-picker";
+import { PriorityPicker } from "./priority-picker";
+import { SamplePicker } from "./sample-picker";
 
 interface PlannerFormProps {
   today: string;
@@ -97,65 +34,36 @@ export function PlannerForm({
   serverErrors = {},
   onSubmit,
 }: PlannerFormProps) {
-  const [form, setForm] = useState<FormState>(initial ? toFormState(initial) : EMPTY);
+  const [form, setForm] = useState<FormState>(initial ? toFormState(initial) : EMPTY_FORM);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
-  const summaryRef = useRef<HTMLDivElement>(null);
   const [failedSubmits, setFailedSubmits] = useState(0);
+  const summaryRef = useRef<HTMLDivElement>(null);
   const samples = useMemo(() => sampleBriefs(today), [today]);
-  const errors = { ...serverErrors, ...clientErrors };
+  const errors: Record<string, string | undefined> = { ...serverErrors, ...clientErrors };
+
   // After a failed submit, move focus to the summary so screen reader users hear what to fix.
   useEffect(() => {
     if (failedSubmits > 0) summaryRef.current?.focus();
   }, [failedSubmits]);
 
-  const errorEntries = FIELD_ORDER.filter((key) => errors[key]).map((key) => [
-    key,
-    errors[key] as string,
-  ]);
-
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((previous) => ({ ...previous, [key]: value }));
   }
 
-  function togglePriority(priority: Priority) {
-    setForm((previous) => ({
-      ...previous,
-      priorities: previous.priorities.includes(priority)
-        ? previous.priorities.filter((item) => item !== priority)
-        : [...previous.priorities, priority],
-    }));
-  }
-
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = eventBriefSchema.safeParse(form);
-    const next = result.success ? {} : fieldErrors(result.error);
-    const dateError = form.date ? validateEventDate(form.date, today) : null;
-    if (dateError && !next.date) next.date = dateError;
-    setClientErrors(next);
-    if (!result.success || dateError) {
-      setFailedSubmits((count) => count + 1);
-      return;
-    }
-    onSubmit(result.data);
+    const result = validateForm(form, today);
+    setClientErrors(result.ok ? {} : result.errors);
+    if (result.ok) onSubmit(result.brief);
+    else setFailedSubmits((count) => count + 1);
   }
-
-  const describedBy = (key: string, hint?: boolean) =>
-    [hint ? `${key}-hint` : "", errors[key] ? `${key}-error` : ""].filter(Boolean).join(" ") ||
-    undefined;
-
-  const fieldError = (key: string) =>
-    errors[key] ? (
-      <p id={`${key}-error`} className="field-error">
-        {errors[key]}
-      </p>
-    ) : null;
 
   return (
     <form
       onSubmit={handleSubmit}
       noValidate
       aria-labelledby="brief-heading"
+      aria-busy={busy}
       className="sticker p-5 sm:p-9"
     >
       <h2 id="brief-heading" className="display text-4xl sm:text-5xl">
@@ -165,261 +73,155 @@ export function PlannerForm({
         Fields marked with an asterisk are required. Everything else makes the plan more personal.
       </p>
 
-      <div
-        className="no-print mt-5 flex flex-wrap items-center gap-2 rounded-2xl bg-sun p-3"
-        role="group"
-        aria-label="Try a sample event"
-      >
-        <span className="px-1 font-bold">No details yet? Try a sample:</span>
-        {samples.map((sample) => (
-          <button
-            key={sample.id}
-            type="button"
-            className="chip hover:bg-blush"
-            onClick={() => {
-              setForm(toFormState(sample.brief));
-              setClientErrors({});
-            }}
-          >
-            {sample.label}
-          </button>
-        ))}
-      </div>
-
-      {errorEntries.length > 0 && (
-        <div
-          ref={summaryRef}
-          tabIndex={-1}
-          role="alert"
-          className="mt-5 rounded-2xl border-2 border-alert bg-alert-soft p-4"
-          aria-labelledby="error-summary-title"
-        >
-          <h3 id="error-summary-title" className="font-bold text-alert">
-            Please fix{" "}
-            {errorEntries.length === 1 ? "this detail" : `these ${errorEntries.length} details`}
-          </h3>
-          <ul className="mt-2 list-disc pl-5">
-            {errorEntries.map(([key, message]) => (
-              <li key={key}>
-                <a className="font-semibold text-alert underline" href={`#field-${key}`}>
-                  {message}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <fieldset className="mt-6">
-        <legend className="field-label">Type of event *</legend>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {EVENT_TYPES.map((type) => (
-            <label
-              key={type}
-              className={`flex min-h-14 cursor-pointer items-center gap-2 rounded-2xl border-2 border-ink px-3 py-2 text-lg font-bold transition-transform ${
-                form.eventType === type
-                  ? "-translate-y-0.5 bg-marigold shadow-[4px_4px_0_#1a1033]"
-                  : "bg-paper hover:bg-sun"
-              }`}
-            >
-              <input
-                id={type === EVENT_TYPES[0] ? "field-eventType" : undefined}
-                type="radio"
-                name="eventType"
-                value={type}
-                checked={form.eventType === type}
-                onChange={() => update("eventType", type)}
-                className="h-4 w-4 accent-[#c4005f]"
-              />
-              <span aria-hidden="true">{EVENT_ICONS[type]}</span>
-              {EVENT_LABELS[type]}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <SamplePicker
+        samples={samples}
+        onPick={(sample) => {
+          setForm(toFormState(sample.brief));
+          setClientErrors({});
+        }}
+      />
+      <ErrorSummary
+        ref={summaryRef}
+        entries={orderedErrors({ ...serverErrors, ...clientErrors })}
+      />
+      <EventTypePicker value={form.eventType} onChange={(type) => update("eventType", type)} />
 
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <label htmlFor="field-title" className="field-label">
-            Event name *
-          </label>
-          <input
-            id="field-title"
-            className="field-input"
-            value={form.title}
-            maxLength={LIMITS.nameMax}
-            onChange={(event) => update("title", event.target.value)}
-            aria-invalid={Boolean(errors.title)}
-            aria-describedby={describedBy("title")}
-            aria-required="true"
-            autoComplete="off"
-          />
-          {fieldError("title")}
-        </div>
+        <Field name="title" label="Event name *" error={errors.title} className="sm:col-span-2">
+          {(control) => (
+            <input
+              {...control}
+              className="field-input"
+              value={form.title}
+              maxLength={LIMITS.nameMax}
+              onChange={(event) => update("title", event.target.value)}
+              aria-required="true"
+              autoComplete="off"
+            />
+          )}
+        </Field>
 
-        <div>
-          <label htmlFor="field-date" className="field-label">
-            Event date *
-          </label>
-          <input
-            id="field-date"
-            type="date"
-            className="field-input"
-            value={form.date}
-            min={today}
-            onChange={(event) => update("date", event.target.value)}
-            aria-invalid={Boolean(errors.date)}
-            aria-describedby={describedBy("date")}
-            aria-required="true"
-          />
-          {fieldError("date")}
-        </div>
+        <Field name="date" label="Event date *" error={errors.date}>
+          {(control) => (
+            <input
+              {...control}
+              type="date"
+              className="field-input"
+              value={form.date}
+              min={today}
+              onChange={(event) => update("date", event.target.value)}
+              aria-required="true"
+            />
+          )}
+        </Field>
 
-        <div>
-          <label htmlFor="field-guests" className="field-label">
-            Expected guests *
-          </label>
-          <input
-            id="field-guests"
-            type="number"
-            inputMode="numeric"
-            min={LIMITS.guestsMin}
-            max={LIMITS.guestsMax}
-            className="field-input"
-            value={form.guests}
-            onChange={(event) => update("guests", event.target.value)}
-            aria-invalid={Boolean(errors.guests)}
-            aria-describedby={describedBy("guests")}
-            aria-required="true"
-          />
-          {fieldError("guests")}
-        </div>
+        <Field name="guests" label="Expected guests *" error={errors.guests}>
+          {(control) => (
+            <input
+              {...control}
+              type="number"
+              inputMode="numeric"
+              min={LIMITS.guestsMin}
+              max={LIMITS.guestsMax}
+              className="field-input"
+              value={form.guests}
+              onChange={(event) => update("guests", event.target.value)}
+              aria-required="true"
+            />
+          )}
+        </Field>
 
-        <div>
-          <label htmlFor="field-budget" className="field-label">
-            Total budget *
-          </label>
-          <input
-            id="field-budget"
-            type="number"
-            inputMode="numeric"
-            min={LIMITS.budgetMin}
-            className="field-input"
-            value={form.budget}
-            onChange={(event) => update("budget", event.target.value)}
-            aria-invalid={Boolean(errors.budget)}
-            aria-describedby={describedBy("budget", true)}
-            aria-required="true"
-          />
-          <p id="budget-hint" className="field-hint">
-            Whole amount for everything, for example 500000.
-          </p>
-          {fieldError("budget")}
-        </div>
+        <Field
+          name="budget"
+          label="Total budget *"
+          hint="Whole amount for everything, for example 500000."
+          error={errors.budget}
+        >
+          {(control) => (
+            <input
+              {...control}
+              type="number"
+              inputMode="numeric"
+              min={LIMITS.budgetMin}
+              className="field-input"
+              value={form.budget}
+              onChange={(event) => update("budget", event.target.value)}
+              aria-required="true"
+            />
+          )}
+        </Field>
 
-        <div>
-          <label htmlFor="field-currency" className="field-label">
-            Currency
-          </label>
-          <select
-            id="field-currency"
-            className="field-input"
-            value={form.currency}
-            onChange={(event) => update("currency", event.target.value)}
-          >
-            {CURRENCIES.map((currency) => (
-              <option key={currency} value={currency}>
-                {currency}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Field name="currency" label="Currency" error={errors.currency}>
+          {(control) => (
+            <select
+              {...control}
+              className="field-input"
+              value={form.currency}
+              onChange={(event) => update("currency", event.target.value)}
+            >
+              {CURRENCIES.map((currency) => (
+                <option key={currency} value={currency}>
+                  {currency}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
 
-        <div>
-          <label htmlFor="field-city" className="field-label">
-            City
-          </label>
-          <input
-            id="field-city"
-            className="field-input"
-            value={form.city}
-            maxLength={LIMITS.cityMax}
-            onChange={(event) => update("city", event.target.value)}
-            aria-invalid={Boolean(errors.city)}
-            aria-describedby={describedBy("city")}
-            autoComplete="address-level2"
-          />
-          {fieldError("city")}
-        </div>
+        <Field name="city" label="City" error={errors.city}>
+          {(control) => (
+            <input
+              {...control}
+              className="field-input"
+              value={form.city}
+              maxLength={LIMITS.cityMax}
+              onChange={(event) => update("city", event.target.value)}
+              autoComplete="address-level2"
+            />
+          )}
+        </Field>
 
-        <div>
-          <label htmlFor="field-theme" className="field-label">
-            Theme or vibe
-          </label>
-          <input
-            id="field-theme"
-            className="field-input"
-            value={form.theme}
-            maxLength={LIMITS.themeMax}
-            onChange={(event) => update("theme", event.target.value)}
-            aria-invalid={Boolean(errors.theme)}
-            aria-describedby={describedBy("theme", true)}
-          />
-          <p id="theme-hint" className="field-hint">
-            For example: boho garden, retro Bollywood, minimal white.
-          </p>
-          {fieldError("theme")}
-        </div>
+        <Field
+          name="theme"
+          label="Theme or vibe"
+          hint="For example: boho garden, retro Bollywood, minimal white."
+          error={errors.theme}
+        >
+          {(control) => (
+            <input
+              {...control}
+              className="field-input"
+              value={form.theme}
+              maxLength={LIMITS.themeMax}
+              onChange={(event) => update("theme", event.target.value)}
+            />
+          )}
+        </Field>
       </div>
 
-      <fieldset className="mt-5" aria-describedby={describedBy("priorities", true)}>
-        <legend className="field-label">What matters most? (up to 3)</legend>
-        <p id="priorities-hint" className="field-hint mb-2">
-          Priorities get a bigger share of the budget.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {PRIORITY_OPTIONS.map((priority) => {
-            const checked = form.priorities.includes(priority);
-            const disabled = !checked && form.priorities.length >= 3;
-            return (
-              <label
-                key={priority}
-                className={`chip ${checked ? "bg-mint" : ""} ${disabled ? "opacity-60" : "cursor-pointer hover:bg-sun"}`}
-              >
-                <input
-                  id={priority === PRIORITY_OPTIONS[0] ? "field-priorities" : undefined}
-                  type="checkbox"
-                  checked={checked}
-                  disabled={disabled}
-                  onChange={() => togglePriority(priority)}
-                  className="h-4 w-4 accent-[#006567]"
-                />
-                {PRIORITY_LABELS[priority]}
-              </label>
-            );
-          })}
-        </div>
-        {fieldError("priorities")}
-      </fieldset>
+      <PriorityPicker
+        value={form.priorities}
+        error={errors.priorities}
+        onToggle={(priority) => update("priorities", togglePriority(form.priorities, priority))}
+      />
 
-      <div className="mt-5">
-        <label htmlFor="field-notes" className="field-label">
-          Anything else? Dietary needs, accessibility, traditions
-        </label>
-        <textarea
-          id="field-notes"
-          className="field-input min-h-24"
-          value={form.notes}
-          maxLength={LIMITS.notesMax}
-          onChange={(event) => update("notes", event.target.value)}
-          aria-invalid={Boolean(errors.notes)}
-          aria-describedby={describedBy("notes", true)}
-        />
-        <p id="notes-hint" className="field-hint">
-          {form.notes.length}/{LIMITS.notesMax} characters
-        </p>
-        {fieldError("notes")}
-      </div>
+      <Field
+        name="notes"
+        label="Anything else? Dietary needs, accessibility, traditions"
+        hint={`${form.notes.length}/${LIMITS.notesMax} characters`}
+        error={errors.notes}
+        className="mt-5"
+      >
+        {(control) => (
+          <textarea
+            {...control}
+            className="field-input min-h-24"
+            value={form.notes}
+            maxLength={LIMITS.notesMax}
+            onChange={(event) => update("notes", event.target.value)}
+          />
+        )}
+      </Field>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <button

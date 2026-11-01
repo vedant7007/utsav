@@ -60,8 +60,9 @@ describe("PlannerForm", () => {
   it("limits priorities to three", async () => {
     const user = userEvent.setup();
     render(<PlannerForm today={TODAY} busy={false} onSubmit={vi.fn()} />);
-    for (const name of ["Venue", "Decor", "Photography"])
+    for (const name of ["Venue", "Decor", "Photography"]) {
       await user.click(screen.getByRole("checkbox", { name }));
+    }
     expect(screen.getByRole("checkbox", { name: "Entertainment" })).toBeDisabled();
     await user.click(screen.getByRole("checkbox", { name: "Venue" }));
     expect(screen.getByRole("checkbox", { name: "Entertainment" })).toBeEnabled();

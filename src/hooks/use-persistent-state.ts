@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+type Update<T> = T | ((previous: T) => T);
+
+function isUpdater<T>(next: Update<T>): next is (previous: T) => T {
+  return typeof next === "function";
+}
 
 /**
  * React state mirrored to localStorage. Reads happen after mount to keep server and client
@@ -13,31 +19,30 @@ export function usePersistentState<T>(
   key: string,
   initial: T,
   validate: (value: unknown) => T | null,
-): [T, (next: T | ((previous: T) => T)) => void, boolean] {
+): [T, (next: Update<T>) => void, boolean] {
   const [value, setValue] = useState<T>(initial);
   const [hydrated, setHydrated] = useState(false);
+  // The validator is read once per key; holding it in a ref keeps the effect keyed on `key` only.
+  const validateRef = useRef(validate);
 
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(key);
       if (raw !== null) {
-        const parsed = validate(JSON.parse(raw));
-        // Restoring persisted state after mount is the intended effect here.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+        const parsed = validateRef.current(JSON.parse(raw));
+        // Restoring persisted state after mount keeps server and client renders identical.
         if (parsed !== null) setValue(parsed);
       }
     } catch {
       // Corrupt or inaccessible storage: start fresh.
     }
     setHydrated(true);
-    // validate is expected to be stable for a given key.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   const update = useCallback(
-    (next: T | ((previous: T) => T)) => {
+    (next: Update<T>) => {
       setValue((previous) => {
-        const resolved = typeof next === "function" ? (next as (p: T) => T)(previous) : next;
+        const resolved = isUpdater(next) ? next(previous) : next;
         try {
           if (resolved === null || resolved === undefined) window.localStorage.removeItem(key);
           else window.localStorage.setItem(key, JSON.stringify(resolved));

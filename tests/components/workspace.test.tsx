@@ -2,7 +2,8 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { PlanWorkspace, type PlanProgress } from "@/components/plan/plan-workspace";
+import { PlanWorkspace } from "@/components/plan/plan-workspace";
+import type { PlanProgress } from "@/lib/planner/restore";
 import { buildPlan } from "@/lib/planner/plan";
 import { addDays } from "@/lib/planner/timeline";
 import { makeBrief } from "../fixtures";
