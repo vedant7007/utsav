@@ -38,36 +38,41 @@ Browser (React client)                    Server (Next.js route handlers)
 ```
 src/
   app/                 layout (CSP nonce), page, API routes (plan, assistant, health)
-  components/planner/  form and app shell
-  components/plan/     budget, timeline, vendors, ideas, assistant panels
-  components/brand/    budget rangoli (SVG chart and brand mark)
-  components/landing/  hero
-  components/ui/       accessible tabs
-  hooks/               validated localStorage state
-  lib/planner/         budget, timeline, checklist, ICS export, schemas (pure, no I/O)
-  lib/ai/              Gemini client, prompts, LRU cache, validation and fallbacks
+  proxy.ts             per-request nonce Content-Security-Policy
+  components/planner/  app shell, brief form, event type and priority pickers, error summary
+  components/plan/     plan header and overview, budget (what-if, spend table), timeline,
+                       vendors, ideas, assistant
+  components/ui/       accessible tabs and form field
+  hooks/               usePlanner, useWhatIf, useAssistantChat, validated localStorage state
+  lib/planner/         budget, timeline, checklist, ICS, schemas, form state, restore (pure)
+  lib/ai/              Gemini client with fallback, prompts, LRU cache, ideas, assistant
+  lib/client/          typed fetch wrappers that validate every response
   lib/http/            request pipeline and injectable handlers
   lib/security/        CSP and headers, rate limiter, prompt-injection defense
-tests/                 unit, API and component suites (138 tests)
-e2e/                   Playwright browser tests with axe, desktop and mobile (20 runs)
+tests/                 unit, API and component suites (171 tests)
+e2e/                   Playwright browser tests with axe, desktop and mobile
+docs/                  ARCHITECTURE.md and decision records (docs/adr)
 ```
 
 ## Evaluation criteria
 
 ### Code quality
 
-- TypeScript in strict mode with `noUncheckedIndexedAccess`. No `any`. ESLint (Next.js core web vitals and TypeScript rules) and Prettier.
-- Pure domain logic is kept separate from I/O. Route handlers are factories with injected dependencies (model, clock, limiter), so they are fully testable.
-- One schema (`eventBriefSchema`) validates input on both the client and the server.
+- TypeScript in strict mode with `noUncheckedIndexedAccess`. No `any`, and no type assertions on external data: API responses and local storage are parsed with Zod.
+- ESLint with Next.js, TypeScript and the full strict `jsx-a11y` rule set, plus limits on complexity (12), nesting depth, parameters and file length (300 lines). Prettier and `.editorconfig`, checked in CI.
+- Small, single-purpose modules: state in hooks (`usePlanner`, `useWhatIf`, `useAssistantChat`), presentational components, and pure domain logic with no I/O. Route handlers are factories with injected dependencies (model, clock, limiter), so they are fully testable.
+- One schema (`eventBriefSchema`) validates input on both the client and the server. Every limit is a named constant shared by the form, schema and prompts.
+- Structured JSON logging for AI fallbacks, JSDoc on public functions, and [architecture notes with decision records](docs/ARCHITECTURE.md). See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Security
 
 - **Input validation:** Zod on every request, text cleaned of control characters, length limits, real-date checks, and past or out-of-range dates rejected.
 - **Request pipeline:** same-origin check (blocks cross-site use of the AI quota), per-IP sliding-window rate limits (8 plans and 15 chats per minute), `application/json` only, 32 KB body cap, chat history limited to six turns.
 - **Prompt-injection defense:** user text, including earlier chat turns sent back by the browser, is fenced in `<host_input>` tags, and fence tags are stripped so input cannot break out. The system prompt sets an instruction hierarchy, and suspicious phrases are detected and logged. Tested live: "ignore all previous instructions" gets an on-topic refusal.
-- **Headers:** nonce-based Content-Security-Policy with `strict-dynamic` and no `unsafe-eval` in production, plus HSTS, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy` and `Permissions-Policy`.
+- **Headers:** nonce-based Content-Security-Policy with `strict-dynamic`, no `unsafe-eval` in production and `frame-src 'none'`, plus HSTS (preload), `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy` and a locked-down `Permissions-Policy`.
+- **Client hardening:** every API response and stored plan is re-validated with Zod and rebuilt, so tampered data cannot inject content or crash the page.
 - **Secrets:** `GEMINI_API_KEY` is read only on the server (`server-only` import), is never sent to the browser, and `.env*` files are gitignored. `/api/health` reports only whether AI is on.
-- **Dependencies:** `npm audit --omit=dev` reports 0 vulnerabilities, and CI checks it on every push.
+- **Dependencies and code scanning:** `npm audit --omit=dev` reports 0 vulnerabilities and runs in CI. CodeQL (security-and-quality) scans every push, and Dependabot keeps npm packages and Actions current.
 
 See [SECURITY.md](SECURITY.md) for the threat model.
 
@@ -80,12 +85,12 @@ See [SECURITY.md](SECURITY.md) for the threat model.
 
 ### Testing
 
-- **138 unit, API and component tests:** 97.8% line and 90.5% branch coverage (`npm run test:coverage`, thresholds enforced).
-- **Unit tests:** budget maths (exact sums, priorities, thresholds), timeline compression and leap years, ICS escaping and folding, schemas, cache, rate limiter, prompt defense, and the Gemini client with its fallback chain (SDK mocked).
+- **171 unit, API and component tests:** 98.6% line and 93% branch coverage (`npm run test:coverage`, thresholds enforced at 90% and 85%).
+- **Unit tests:** the proxy CSP, the typed API client (fallbacks, validation, cancellation), restore and progress helpers, form state, error helpers and the logger, plus budget maths (exact sums, priorities, thresholds), timeline compression and leap years, ICS escaping and folding, schemas, cache, rate limiter, prompt defense, and the Gemini client with its fallback chain (SDK mocked).
 - **API tests:** validation, 400/403/413/415/422/429 paths, offline and AI modes.
 - **Component tests:** restoring tampered or stale saved plans, countdown wording, the what-if simulator, keyboard tab navigation, error summary focus, spend tracker, checklist, calendar export, persistence, network fallback, and chat. Each runs **axe-core** checks.
 - **End-to-end:** 10 Playwright scenarios run on desktop and mobile (20 runs) against the production build. They cover the full planning flow, the what-if simulator, persistence across reloads, keyboard-only tabs, offline chat, security headers and API rejection paths, with an axe WCAG 2.1 AA scan on every screen.
-- **CI:** GitHub Actions runs audit, lint, typecheck, coverage, build and the end-to-end suite.
+- **CI:** GitHub Actions runs audit, format check, lint, typecheck, coverage, build and the end-to-end suite. CodeQL runs alongside.
 
 ### Accessibility
 
@@ -120,8 +125,8 @@ The app is deployed on Vercel. Set `GEMINI_API_KEY` (and optionally `GEMINI_MODE
 ## Google services used
 
 - **Google Gemini API** (`@google/genai` SDK, `gemini-3.5-flash-lite` with a lite fallback):
-  - structured JSON generation of personalized ideas, extra timeline tasks, a theme palette, an event-day run sheet and a WhatsApp invitation (`src/lib/ai/planner-ai.ts`)
-  - the conversational planning assistant (`/api/assistant`)
+  - structured JSON generation of personalized ideas, extra timeline tasks, a theme palette, an event-day run sheet and a WhatsApp invitation (`src/lib/ai/ideas.ts`)
+  - the conversational planning assistant (`src/lib/ai/assistant.ts`, `/api/assistant`)
 - Calendar export works with **Google Calendar** through standard `.ics` files.
 
 ## License

@@ -17,10 +17,11 @@ export default defineConfig({
         "src/components/**/*.tsx",
         "src/hooks/**/*.ts",
         "src/app/api/**/*.ts",
+        "src/proxy.ts",
       ],
       exclude: ["src/**/*.d.ts"],
       reporter: ["text-summary", "text", "json-summary"],
-      thresholds: { lines: 80, functions: 80, statements: 80, branches: 70 },
+      thresholds: { lines: 90, functions: 90, statements: 90, branches: 85 },
     },
   },
 });
