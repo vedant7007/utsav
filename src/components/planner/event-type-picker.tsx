@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { EVENT_LABELS, EVENT_TYPES, type EventType } from "@/lib/planner/constants";
 
 const EVENT_ICONS: Record<EventType, string> = {
@@ -13,7 +14,7 @@ interface EventTypePickerProps {
 }
 
 /** Large radio cards for the kind of celebration. */
-export function EventTypePicker({ value, onChange }: EventTypePickerProps) {
+export function EventTypePicker({ value, onChange }: EventTypePickerProps): JSX.Element {
   return (
     <fieldset className="mt-6">
       <legend className="field-label">Type of event *</legend>

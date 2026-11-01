@@ -35,6 +35,24 @@ export interface Planner {
 }
 
 /**
+ * After a new plan renders, moves focus to its title so keyboard and screen reader users land
+ * on the result. Restoring a saved plan on page load does not steal focus.
+ * @returns a function that requests focus on the next render of a plan.
+ */
+function useFocusPlanTitle(saved: SavedPlan | null, editing: boolean): () => void {
+  const pending = useRef(false);
+  useEffect(() => {
+    if (!pending.current || saved === null || editing) return;
+    pending.current = false;
+    document.getElementById("plan-title")?.focus();
+    window.scrollTo({ top: 0 });
+  }, [saved, editing]);
+  return () => {
+    pending.current = true;
+  };
+}
+
+/**
  * All planner state in one place: the saved plan and progress (persisted to local storage),
  * the request lifecycle, and focus management after a new plan renders.
  */
@@ -54,38 +72,43 @@ export function usePlanner(): Planner {
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const controller = useRef<AbortController | null>(null);
-  const focusPlanTitle = useRef(false);
 
   useEffect(() => () => controller.current?.abort(), []);
 
-  // After a new plan renders, move focus to its title so keyboard and screen reader users land
-  // on the result. Restoring a saved plan on page load does not steal focus.
-  useEffect(() => {
-    if (!focusPlanTitle.current || !saved || editing) return;
-    focusPlanTitle.current = false;
-    document.getElementById("plan-title")?.focus();
-    window.scrollTo({ top: 0 });
-  }, [saved, editing]);
+  const focusPlanTitle = useFocusPlanTitle(saved, editing);
 
-  async function submit(brief: EventBrief): Promise<void> {
+  /** Cancels any request in flight and clears the previous outcome. */
+  function beginRequest(): AbortController {
     controller.current?.abort();
-    const current = new AbortController();
-    controller.current = current;
+    controller.current = new AbortController();
     setBusy(true);
     setServerErrors({});
     setMessage("");
+    return controller.current;
+  }
+
+  function showPlan(result: SavedPlan, brief: EventBrief): void {
+    // Progress belongs to an event type's checklist; keep it only when that stays the same.
+    if (saved?.plan.brief.eventType !== brief.eventType) setProgress(EMPTY_PROGRESS);
+    setSaved(result);
+    focusPlanTitle();
+    setEditing(false);
+  }
+
+  function showError(error: unknown): void {
+    if (isAbortError(error)) return;
+    if (error instanceof ApiError) setServerErrors(error.fields);
+    setMessage(errorMessage(error, "Could not build the plan. Please try again."));
+  }
+
+  async function submit(brief: EventBrief): Promise<void> {
+    const current = beginRequest();
     try {
-      const result = await requestPlan(brief, current.signal);
-      const sameEvent = saved?.plan.brief.eventType === brief.eventType;
-      setSaved(result);
-      if (!sameEvent) setProgress(EMPTY_PROGRESS);
-      focusPlanTitle.current = true;
-      setEditing(false);
+      showPlan(await requestPlan(brief, current.signal), brief);
     } catch (error) {
-      if (isAbortError(error)) return;
-      if (error instanceof ApiError) setServerErrors(error.fields);
-      setMessage(errorMessage(error, "Could not build the plan. Please try again."));
+      showError(error);
     } finally {
+      // A newer request owns the busy flag once it has started.
       if (controller.current === current) setBusy(false);
     }
   }

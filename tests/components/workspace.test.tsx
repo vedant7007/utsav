@@ -73,11 +73,11 @@ describe("PlanWorkspace", () => {
     await user.click(screen.getByRole("tab", { name: "Vendors" }));
     const panel = screen.getByRole("tabpanel", { name: "Vendors" });
     const boxes = within(panel).getAllByRole("checkbox");
-    await user.click(boxes[0] as HTMLElement);
+    await user.click(boxes[0]!);
     expect(
       within(panel).getByText(new RegExp(`1 of ${boxes.length} tasks done`)),
     ).toBeInTheDocument();
-    await user.click(boxes[0] as HTMLElement);
+    await user.click(boxes[0]!);
     expect(
       within(panel).getByText(new RegExp(`0 of ${boxes.length} tasks done`)),
     ).toBeInTheDocument();

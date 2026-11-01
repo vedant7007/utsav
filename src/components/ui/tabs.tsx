@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent, type ReactNode, useId, useRef } from "react";
+import { type KeyboardEvent, type ReactNode, useId, useRef, type JSX } from "react";
 
 export interface TabItem {
   id: string;
@@ -19,7 +19,7 @@ interface TabsProps {
  * WAI-ARIA tabs with automatic activation: Arrow keys move between tabs, Home and End jump
  * to the ends, and only the active tab is in the Tab order.
  */
-export function Tabs({ label, items, active, onChange }: TabsProps) {
+export function Tabs({ label, items, active, onChange }: TabsProps): JSX.Element {
   const baseId = useId();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { checklistProgress } from "@/lib/planner/checklist";
 import { countdownLabel, localTodayIso } from "@/lib/planner/format";
@@ -39,7 +39,7 @@ export function PlanWorkspace({
   onProgressChange,
   onEdit,
   onReset,
-}: PlanWorkspaceProps) {
+}: PlanWorkspaceProps): JSX.Element {
   const [tab, setTab] = useState("overview");
   const { brief, budget, timeline, checklist, ideas } = plan;
   const today = localTodayIso();

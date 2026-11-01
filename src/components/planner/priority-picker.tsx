@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { FieldError } from "@/components/ui/field";
 import { LIMITS, PRIORITY_LABELS, PRIORITY_OPTIONS, type Priority } from "@/lib/planner/constants";
 import { describedBy } from "@/lib/planner/form-state";
@@ -9,7 +10,7 @@ interface PriorityPickerProps {
 }
 
 /** Checkbox chips for up to three budget priorities. */
-export function PriorityPicker({ value, error, onToggle }: PriorityPickerProps) {
+export function PriorityPicker({ value, error, onToggle }: PriorityPickerProps): JSX.Element {
   const full = value.length >= LIMITS.prioritiesMax;
   return (
     <fieldset className="mt-5" aria-describedby={describedBy("priorities", true, Boolean(error))}>

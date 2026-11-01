@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import type { SampleBrief } from "@/lib/planner/samples";
 
 interface SamplePickerProps {
@@ -6,7 +7,7 @@ interface SamplePickerProps {
 }
 
 /** One-click sample events so a host can see a full plan before typing anything. */
-export function SamplePicker({ samples, onPick }: SamplePickerProps) {
+export function SamplePicker({ samples, onPick }: SamplePickerProps): JSX.Element {
   return (
     <div
       className="no-print mt-5 flex flex-wrap items-center gap-2 rounded-2xl bg-sun p-3"

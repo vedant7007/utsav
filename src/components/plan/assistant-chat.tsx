@@ -1,9 +1,10 @@
 "use client";
 
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import type { JSX } from "react";
 import { useAssistantChat } from "@/hooks/use-assistant-chat";
-import { LIMITS } from "@/lib/planner/constants";
 import type { EventBrief } from "@/lib/planner/schema";
+import { ChatComposer } from "./assistant/chat-composer";
+import { ChatLog } from "./assistant/chat-log";
 
 const SUGGESTIONS = [
   "How can I cut 15% from this budget?",
@@ -16,24 +17,11 @@ interface AssistantChatProps {
 }
 
 /** Conversational planning help. New replies are announced through a polite live region. */
-export function AssistantChat({ brief }: AssistantChatProps) {
+export function AssistantChat({ brief }: AssistantChatProps): JSX.Element {
   const { turns, busy, error, send, announcement } = useAssistantChat(brief);
-  const [draft, setDraft] = useState("");
-  const logRef = useRef<HTMLOListElement>(null);
-
-  useEffect(() => {
-    logRef.current?.lastElementChild?.scrollIntoView({ block: "nearest" });
-  }, [turns]);
-
-  function ask(message: string) {
-    setDraft("");
+  const ask = (message: string): void => {
     void send(message);
-  }
-
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    ask(draft);
-  }
+  };
 
   return (
     <section aria-labelledby="assistant-heading" className="sticker p-6">
@@ -42,33 +30,7 @@ export function AssistantChat({ brief }: AssistantChatProps) {
       </h2>
       <p className="text-muted">Questions about this plan: budget trade-offs, priorities, ideas.</p>
 
-      <ol
-        ref={logRef}
-        aria-label="Conversation"
-        aria-busy={busy}
-        className="mt-4 max-h-96 space-y-3 overflow-y-auto"
-      >
-        {turns.map((turn, index) => (
-          <li
-            key={index}
-            className={`max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-2.5 ${
-              turn.role === "user"
-                ? "ml-auto rounded-br-sm bg-rani text-white"
-                : "rounded-bl-sm border-2 border-ink bg-sun text-ink"
-            }`}
-          >
-            <span className="sr-only">
-              {turn.role === "user" ? "You said: " : "Utsav replied: "}
-            </span>
-            {turn.content}
-          </li>
-        ))}
-        {busy && (
-          <li className="max-w-[85%] rounded-2xl border-2 border-ink bg-sun px-4 py-2.5 font-semibold">
-            Utsav is thinking...
-          </li>
-        )}
-      </ol>
+      <ChatLog turns={turns} busy={busy} />
 
       {turns.length === 0 && (
         <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Suggested questions">
@@ -85,29 +47,13 @@ export function AssistantChat({ brief }: AssistantChatProps) {
         </div>
       )}
 
-      {error && (
+      {error !== "" && (
         <p role="alert" className="field-error mt-3">
           {error}
         </p>
       )}
 
-      <form onSubmit={onSubmit} className="mt-4 flex gap-2">
-        <label htmlFor="assistant-input" className="sr-only">
-          Your question
-        </label>
-        <input
-          id="assistant-input"
-          className="field-input"
-          value={draft}
-          maxLength={LIMITS.chatMessageMax}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Ask about this plan"
-          autoComplete="off"
-        />
-        <button type="submit" className="btn btn-primary" disabled={busy || !draft.trim()}>
-          Send
-        </button>
-      </form>
+      <ChatComposer busy={busy} onAsk={ask} />
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { Rangoli } from "@/components/brand/rangoli";
 import { useWhatIf } from "@/hooks/use-what-if";
 import { type BudgetPlan, summariseSpend, whatIfRanges } from "@/lib/planner/budget";
@@ -20,7 +20,12 @@ interface BudgetPanelProps {
  * Budget split with a what-if simulator (drag budget or guest count and watch every line and
  * the per-guest figure update), a rangoli chart linked to the table, and a spend tracker.
  */
-export function BudgetPanel({ brief, budget, actuals, onActualChange }: BudgetPanelProps) {
+export function BudgetPanel({
+  brief,
+  budget,
+  actuals,
+  onActualChange,
+}: BudgetPanelProps): JSX.Element {
   const whatIf = useWhatIf(brief, budget);
   const [activeId, setActiveId] = useState<string | null>(null);
   const { view } = whatIf;

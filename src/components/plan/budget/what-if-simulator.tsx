@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import type { BudgetPlan, WhatIfRanges } from "@/lib/planner/budget";
 import { Stat } from "./stat";
 
@@ -15,7 +16,7 @@ interface WhatIfSimulatorProps {
 }
 
 /** Two sliders and live headline figures for testing a different budget or guest list. */
-export function WhatIfSimulator(props: WhatIfSimulatorProps) {
+export function WhatIfSimulator(props: WhatIfSimulatorProps): JSX.Element {
   const { total, guests, ranges, view, active, spent, money } = props;
 
   return (
@@ -27,38 +28,27 @@ export function WhatIfSimulator(props: WhatIfSimulatorProps) {
         Drag to test a different budget or guest list. Your saved plan stays as it is.
       </p>
       <div className="mt-5 space-y-5">
-        <div>
-          <label htmlFor="whatif-budget" className="field-label">
-            Total budget: <span className="tabular-nums">{money(total)}</span>
-          </label>
-          <input
-            id="whatif-budget"
-            type="range"
-            min={ranges.budgetMin}
-            max={ranges.budgetMax}
-            step={ranges.step}
-            value={total}
-            aria-describedby="whatif-hint"
-            aria-valuetext={money(total)}
-            onChange={(event) => props.onTotalChange(Number(event.target.value))}
-          />
-        </div>
-        <div>
-          <label htmlFor="whatif-guests" className="field-label">
-            Guests: <span className="tabular-nums">{guests}</span>
-          </label>
-          <input
-            id="whatif-guests"
-            type="range"
-            min={ranges.guestsMin}
-            max={ranges.guestsMax}
-            step={1}
-            value={guests}
-            aria-describedby="whatif-hint"
-            aria-valuetext={`${guests} guests`}
-            onChange={(event) => props.onGuestsChange(Number(event.target.value))}
-          />
-        </div>
+        <RangeField
+          id="whatif-budget"
+          label="Total budget"
+          value={total}
+          min={ranges.budgetMin}
+          max={ranges.budgetMax}
+          step={ranges.step}
+          format={money}
+          onChange={props.onTotalChange}
+        />
+        <RangeField
+          id="whatif-guests"
+          label="Guests"
+          value={guests}
+          min={ranges.guestsMin}
+          max={ranges.guestsMax}
+          step={1}
+          format={String}
+          announce={(count) => `${String(count)} guests`}
+          onChange={props.onGuestsChange}
+        />
       </div>
       <dl className="mt-5 grid grid-cols-3 gap-3">
         <Stat label="Budget" value={money(view.total)} tone="bg-sun" />
@@ -89,6 +79,49 @@ export function WhatIfSimulator(props: WhatIfSimulatorProps) {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+interface RangeFieldProps {
+  id: string;
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  /** Human-readable value shown in the label. */
+  format: (value: number) => string;
+  /** What screen readers announce; defaults to the formatted value. */
+  announce?: (value: number) => string;
+  onChange: (value: number) => void;
+}
+
+/** A labelled slider that announces its formatted value. */
+function RangeField({
+  id,
+  label,
+  value,
+  format,
+  announce = format,
+  onChange,
+  ...range
+}: RangeFieldProps): JSX.Element {
+  const text = format(value);
+  return (
+    <div>
+      <label htmlFor={id} className="field-label">
+        {label}: <span className="tabular-nums">{text}</span>
+      </label>
+      <input
+        id={id}
+        type="range"
+        {...range}
+        value={value}
+        aria-describedby="whatif-hint"
+        aria-valuetext={announce(value)}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
     </div>
   );
 }

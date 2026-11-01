@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { formatDate, formatMoney } from "@/lib/planner/format";
 import type { EventPlan } from "@/lib/planner/plan";
 
@@ -9,7 +10,7 @@ interface PlanOverviewProps {
 }
 
 /** The overview tab: AI summary, theme, palette strip and four headline facts. */
-export function PlanOverview({ plan, countdown, today, tasks }: PlanOverviewProps) {
+export function PlanOverview({ plan, countdown, today, tasks }: PlanOverviewProps): JSX.Element {
   const { budget, timeline, ideas } = plan;
   const nextUp = timeline.milestones.find((milestone) => milestone.date >= today);
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { JSX, ReactNode } from "react";
 import { Rangoli } from "@/components/brand/rangoli";
 import { EVENT_LABELS } from "@/lib/planner/constants";
 import { formatDate } from "@/lib/planner/format";
@@ -24,7 +24,7 @@ function rangoliLabel(plan: EventPlan): string {
 }
 
 /** The festive night band at the top of a plan: title, key details, actions and the rangoli. */
-export function PlanHeader({ plan, countdown, onEdit, onReset }: PlanHeaderProps) {
+export function PlanHeader({ plan, countdown, onEdit, onReset }: PlanHeaderProps): JSX.Element {
   const { brief, budget } = plan;
   const petals = budget.lines.map(({ id, label, share }) => ({ id, label, share }));
 

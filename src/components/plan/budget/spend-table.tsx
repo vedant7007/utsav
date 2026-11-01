@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type JSX } from "react";
 import { RANGOLI_COLORS } from "@/components/brand/rangoli";
 import type { BudgetLine, SpendRow } from "@/lib/planner/budget";
 import { formatPercent } from "@/lib/planner/format";
@@ -16,7 +16,7 @@ interface SpendTableProps {
 }
 
 /** Budget breakdown with an editable actual-spend column, linked to the rangoli chart. */
-export function SpendTable(props: SpendTableProps) {
+export function SpendTable(props: SpendTableProps): JSX.Element {
   const { rows, lines, actuals, activeId, money, onActiveChange } = props;
   const captionId = useId();
 
@@ -48,56 +48,19 @@ export function SpendTable(props: SpendTableProps) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, index) => {
-            const line = lines[index];
-            const inputId = `actual-${row.id}`;
-            return (
-              <tr
-                key={row.id}
-                className={`border-b border-ink/15 align-middle ${activeId === row.id ? "bg-sun" : ""}`}
-                onMouseEnter={() => onActiveChange(row.id)}
-                onMouseLeave={() => onActiveChange(null)}
-                onFocus={() => onActiveChange(row.id)}
-                onBlur={() => onActiveChange(null)}
-              >
-                <th scope="row" className="py-2.5 pr-3 font-semibold">
-                  <span className="flex items-center gap-2">
-                    <span
-                      aria-hidden="true"
-                      className="h-3.5 w-3.5 shrink-0 rounded-full border border-ink"
-                      style={{ backgroundColor: RANGOLI_COLORS[index % RANGOLI_COLORS.length] }}
-                    />
-                    {row.label}
-                    {line?.priority && (
-                      <span className="rounded-full border border-ink bg-mint px-2 py-0.5 text-xs font-bold">
-                        Priority
-                      </span>
-                    )}
-                  </span>
-                </th>
-                <td className="py-2.5 pr-3 tabular-nums">{formatPercent(line?.share ?? 0)}</td>
-                <td className="py-2.5 pr-3 text-right tabular-nums">
-                  {money(line?.amount ?? row.planned)}
-                </td>
-                <td className="py-2.5 text-right">
-                  <label htmlFor={inputId} className="sr-only">
-                    Actual spend on {row.label}
-                  </label>
-                  <input
-                    id={inputId}
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    placeholder="0"
-                    value={actuals[row.id] ?? ""}
-                    onChange={(event) => props.onActualChange(row.id, Number(event.target.value))}
-                    aria-invalid={row.over}
-                    className="field-input w-36 text-right tabular-nums"
-                  />
-                </td>
-              </tr>
-            );
-          })}
+          {rows.map((row, index) => (
+            <SpendTableRow
+              key={row.id}
+              row={row}
+              line={lines[index]}
+              color={RANGOLI_COLORS[index % RANGOLI_COLORS.length]}
+              actual={actuals[row.id]}
+              active={activeId === row.id}
+              money={money}
+              onActiveChange={onActiveChange}
+              onActualChange={props.onActualChange}
+            />
+          ))}
         </tbody>
         <tfoot>
           <tr className="font-bold">
@@ -111,5 +74,67 @@ export function SpendTable(props: SpendTableProps) {
         </tfoot>
       </table>
     </div>
+  );
+}
+
+interface SpendTableRowProps {
+  row: SpendRow;
+  line: BudgetLine | undefined;
+  color: string | undefined;
+  actual: number | undefined;
+  active: boolean;
+  money: (amount: number) => string;
+  onActiveChange: (lineId: string | null) => void;
+  onActualChange: (lineId: string, amount: number) => void;
+}
+
+/** One category: colour key, share, planned amount and an editable actual spend. */
+function SpendTableRow(props: SpendTableRowProps): JSX.Element {
+  const { row, line, active, onActiveChange } = props;
+  const inputId = `actual-${row.id}`;
+  return (
+    <tr
+      className={`border-b border-ink/15 align-middle ${active ? "bg-sun" : ""}`}
+      onMouseEnter={() => onActiveChange(row.id)}
+      onMouseLeave={() => onActiveChange(null)}
+      onFocus={() => onActiveChange(row.id)}
+      onBlur={() => onActiveChange(null)}
+    >
+      <th scope="row" className="py-2.5 pr-3 font-semibold">
+        <span className="flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="h-3.5 w-3.5 shrink-0 rounded-full border border-ink"
+            style={{ backgroundColor: props.color }}
+          />
+          {row.label}
+          {line?.priority === true && (
+            <span className="rounded-full border border-ink bg-mint px-2 py-0.5 text-xs font-bold">
+              Priority
+            </span>
+          )}
+        </span>
+      </th>
+      <td className="py-2.5 pr-3 tabular-nums">{formatPercent(line?.share ?? 0)}</td>
+      <td className="py-2.5 pr-3 text-right tabular-nums">
+        {props.money(line?.amount ?? row.planned)}
+      </td>
+      <td className="py-2.5 text-right">
+        <label htmlFor={inputId} className="sr-only">
+          Actual spend on {row.label}
+        </label>
+        <input
+          id={inputId}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          placeholder="0"
+          value={props.actual ?? ""}
+          onChange={(event) => props.onActualChange(row.id, Number(event.target.value))}
+          aria-invalid={row.over}
+          className="field-input w-36 text-right tabular-nums"
+        />
+      </td>
+    </tr>
   );
 }

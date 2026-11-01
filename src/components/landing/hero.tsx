@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { Rangoli } from "@/components/brand/rangoli";
 import { BUDGET_TEMPLATES } from "@/lib/planner/budget";
 
@@ -17,7 +18,7 @@ const DELIVERABLES = [
 ];
 
 /** Landing hero: the headline on the left, a blooming budget rangoli on the right. */
-export function Hero() {
+export function Hero(): JSX.Element {
   return (
     <section
       aria-labelledby="hero-heading"

@@ -1,8 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Field } from "@/components/ui/field";
-import { CURRENCIES, LIMITS } from "@/lib/planner/constants";
+import { type SubmitEvent, useEffect, useMemo, useRef, useState, type JSX } from "react";
 import {
   EMPTY_FORM,
   type FormState,
@@ -13,10 +11,12 @@ import {
 } from "@/lib/planner/form-state";
 import { sampleBriefs } from "@/lib/planner/samples";
 import type { EventBrief, EventBriefInput } from "@/lib/planner/schema";
+import { BriefFields, NotesField, type UpdateField } from "./brief-fields";
 import { ErrorSummary } from "./error-summary";
 import { EventTypePicker } from "./event-type-picker";
 import { PriorityPicker } from "./priority-picker";
 import { SamplePicker } from "./sample-picker";
+import { SubmitBar } from "./submit-bar";
 
 interface PlannerFormProps {
   today: string;
@@ -33,7 +33,7 @@ export function PlannerForm({
   busy,
   serverErrors = {},
   onSubmit,
-}: PlannerFormProps) {
+}: PlannerFormProps): JSX.Element {
   const [form, setForm] = useState<FormState>(initial ? toFormState(initial) : EMPTY_FORM);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
   const [failedSubmits, setFailedSubmits] = useState(0);
@@ -46,11 +46,11 @@ export function PlannerForm({
     if (failedSubmits > 0) summaryRef.current?.focus();
   }, [failedSubmits]);
 
-  function update<K extends keyof FormState>(key: K, value: FormState[K]) {
+  const update: UpdateField = (key, value) => {
     setForm((previous) => ({ ...previous, [key]: value }));
-  }
+  };
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>): void {
     event.preventDefault();
     const result = validateForm(form, today);
     setClientErrors(result.ok ? {} : result.errors);
@@ -86,156 +86,15 @@ export function PlannerForm({
       />
       <EventTypePicker value={form.eventType} onChange={(type) => update("eventType", type)} />
 
-      <div className="mt-5 grid gap-5 sm:grid-cols-2">
-        <Field name="title" label="Event name *" error={errors.title} className="sm:col-span-2">
-          {(control) => (
-            <input
-              {...control}
-              className="field-input"
-              value={form.title}
-              maxLength={LIMITS.nameMax}
-              onChange={(event) => update("title", event.target.value)}
-              aria-required="true"
-              autoComplete="off"
-            />
-          )}
-        </Field>
-
-        <Field name="date" label="Event date *" error={errors.date}>
-          {(control) => (
-            <input
-              {...control}
-              type="date"
-              className="field-input"
-              value={form.date}
-              min={today}
-              onChange={(event) => update("date", event.target.value)}
-              aria-required="true"
-            />
-          )}
-        </Field>
-
-        <Field name="guests" label="Expected guests *" error={errors.guests}>
-          {(control) => (
-            <input
-              {...control}
-              type="number"
-              inputMode="numeric"
-              min={LIMITS.guestsMin}
-              max={LIMITS.guestsMax}
-              className="field-input"
-              value={form.guests}
-              onChange={(event) => update("guests", event.target.value)}
-              aria-required="true"
-            />
-          )}
-        </Field>
-
-        <Field
-          name="budget"
-          label="Total budget *"
-          hint="Whole amount for everything, for example 500000."
-          error={errors.budget}
-        >
-          {(control) => (
-            <input
-              {...control}
-              type="number"
-              inputMode="numeric"
-              min={LIMITS.budgetMin}
-              className="field-input"
-              value={form.budget}
-              onChange={(event) => update("budget", event.target.value)}
-              aria-required="true"
-            />
-          )}
-        </Field>
-
-        <Field name="currency" label="Currency" error={errors.currency}>
-          {(control) => (
-            <select
-              {...control}
-              className="field-input"
-              value={form.currency}
-              onChange={(event) => update("currency", event.target.value)}
-            >
-              {CURRENCIES.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-
-        <Field name="city" label="City" error={errors.city}>
-          {(control) => (
-            <input
-              {...control}
-              className="field-input"
-              value={form.city}
-              maxLength={LIMITS.cityMax}
-              onChange={(event) => update("city", event.target.value)}
-              autoComplete="address-level2"
-            />
-          )}
-        </Field>
-
-        <Field
-          name="theme"
-          label="Theme or vibe"
-          hint="For example: boho garden, retro Bollywood, minimal white."
-          error={errors.theme}
-        >
-          {(control) => (
-            <input
-              {...control}
-              className="field-input"
-              value={form.theme}
-              maxLength={LIMITS.themeMax}
-              onChange={(event) => update("theme", event.target.value)}
-            />
-          )}
-        </Field>
-      </div>
-
+      <BriefFields form={form} errors={errors} today={today} update={update} />
       <PriorityPicker
         value={form.priorities}
         error={errors.priorities}
         onToggle={(priority) => update("priorities", togglePriority(form.priorities, priority))}
       />
 
-      <Field
-        name="notes"
-        label="Anything else? Dietary needs, accessibility, traditions"
-        hint={`${form.notes.length}/${LIMITS.notesMax} characters`}
-        error={errors.notes}
-        className="mt-5"
-      >
-        {(control) => (
-          <textarea
-            {...control}
-            className="field-input min-h-24"
-            value={form.notes}
-            maxLength={LIMITS.notesMax}
-            onChange={(event) => update("notes", event.target.value)}
-          />
-        )}
-      </Field>
-
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          className="btn btn-primary text-lg"
-          disabled={busy}
-          aria-describedby="submit-status"
-        >
-          {busy ? "Planning your celebration..." : "Create my plan"}
-        </button>
-        <p id="submit-status" className="text-sm text-muted" aria-live="polite">
-          {busy ? "Building budget, timeline, vendors and ideas. This takes a few seconds." : ""}
-        </p>
-      </div>
+      <NotesField form={form} errors={errors} update={update} />
+      <SubmitBar busy={busy} />
     </form>
   );
 }

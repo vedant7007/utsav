@@ -1,12 +1,12 @@
-import type { Ref } from "react";
+import type { JSX, Ref } from "react";
 
 interface ErrorSummaryProps {
-  entries: Array<[string, string]>;
+  entries: [string, string][];
   ref?: Ref<HTMLDivElement>;
 }
 
 /** Lists every validation error with a link to its field. Receives focus after a failed submit. */
-export function ErrorSummary({ entries, ref }: ErrorSummaryProps) {
+export function ErrorSummary({ entries, ref }: ErrorSummaryProps): JSX.Element | null {
   if (entries.length === 0) return null;
   return (
     <div

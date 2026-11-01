@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { JSX, ReactNode } from "react";
 import { describedBy } from "@/lib/planner/form-state";
 
 /** Accessibility attributes shared by every form control. */
@@ -21,7 +21,7 @@ interface FieldProps {
  * A labelled form field with an optional hint and error, wired together for assistive tech.
  * The control is rendered by `children`, which receives its id and ARIA attributes.
  */
-export function Field({ name, label, hint, error, className, children }: FieldProps) {
+export function Field({ name, label, hint, error, className, children }: FieldProps): JSX.Element {
   const id = `field-${name}`;
   return (
     <div className={className}>
@@ -44,7 +44,7 @@ export function Field({ name, label, hint, error, className, children }: FieldPr
 }
 
 /** The inline error under a field, referenced by the field's `aria-describedby`. */
-export function FieldError({ name, error }: { name: string; error?: string }) {
+export function FieldError({ name, error }: { name: string; error?: string }): JSX.Element | null {
   if (!error) return null;
   return (
     <p id={`${name}-error`} className="field-error">

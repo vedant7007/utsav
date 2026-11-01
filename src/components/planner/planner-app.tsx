@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX } from "react";
 import { Hero } from "@/components/landing/hero";
 import { PlanWorkspace } from "@/components/plan/plan-workspace";
 import { usePlanner } from "@/hooks/use-planner";
@@ -7,7 +8,7 @@ import { localTodayIso } from "@/lib/planner/format";
 import { PlannerForm } from "./planner-form";
 
 /** Top-level planner: the brief form, then the plan workspace. State survives page reloads. */
-export function PlannerApp({ today: serverToday }: { today: string }) {
+export function PlannerApp({ today: serverToday }: { today: string }): JSX.Element {
   const planner = usePlanner();
   const { saved, editing } = planner;
   const today = planner.hydrated ? localTodayIso() : serverToday;
@@ -43,7 +44,7 @@ export function PlannerApp({ today: serverToday }: { today: string }) {
           initial={editing ? saved?.plan.brief : null}
           busy={planner.busy}
           serverErrors={planner.serverErrors}
-          onSubmit={planner.submit}
+          onSubmit={(brief) => void planner.submit(brief)}
         />
         {editing && (
           <button type="button" className="btn btn-ghost" onClick={planner.stopEditing}>

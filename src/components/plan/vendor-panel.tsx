@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX } from "react";
 import { checklistProgress, type VendorGroup } from "@/lib/planner/checklist";
 
 interface VendorPanelProps {
@@ -9,7 +10,7 @@ interface VendorPanelProps {
 }
 
 /** Vendor-by-vendor checklist; progress changes are announced through a polite live region. */
-export function VendorPanel({ checklist, done, onToggle }: VendorPanelProps) {
+export function VendorPanel({ checklist, done, onToggle }: VendorPanelProps): JSX.Element {
   const doneSet = new Set(done);
   const progress = checklistProgress(checklist, doneSet);
 
